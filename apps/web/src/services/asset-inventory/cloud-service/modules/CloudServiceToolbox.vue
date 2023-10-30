@@ -244,7 +244,7 @@ const handleExport = async () => {
         const data = await SpaceConnector.clientV2.inventory.cloudService.export(cloudServiceExcelExportParams);
         await downloadByFileUrl(data.download_url);
     } catch (e) {
-        ErrorHandler.handleError(e);
+        ErrorHandler.handleRequestError(e, i18n.t('COMMON.EXCEL.ALT_E_DOWNLOAD'));
     } finally {
         await store.dispatch('display/finishLoading');
     }
