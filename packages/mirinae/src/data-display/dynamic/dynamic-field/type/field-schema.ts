@@ -1,6 +1,7 @@
 /** Metadata schema types for Dynamic field */
 // eslint-disable-next-line import/no-cycle
 import type { DynamicLayout } from '@/data-display/dynamic/dynamic-layout/type/layout-schema';
+import type { ActionIcon } from '@/inputs/link/type';
 
 export const dynamicFieldTypes = ['text', 'badge', 'datetime', 'state', 'enum', 'size', 'dict', 'list', 'more'];
 
@@ -20,6 +21,8 @@ export interface CommonOptions {
     postfix?: string;
     prefix?: string;
     disable_copy?: boolean;
+    link_highlighting?: boolean;
+    link_action_icon?: ActionIcon;
 }
 
 export interface BadgeOptions extends CommonOptions {

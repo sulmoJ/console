@@ -85,6 +85,14 @@ Each type is slightly different, but there are also **common options**.
 - disable_copy
   - false (default): Show copy icon
   - true : Hide copy icon
+- link_highlighting
+  - false (default): Do not highlight the link
+  - true : Highlight the link
+- link_action_icon
+    - 'internal-link' (default): Show internal link icon
+    - 'external-link' : Show external link icon
+    - 'none' : Hide link icon
+    - `link_action_icon` receives props of [Link component](https://storybook.developer.spaceone.dev/?path=/docs/inputs-link--basic-link#action-icon) as it is.
 
 ```typescript
 interface CommonOptions {
@@ -212,7 +220,9 @@ It's options are the same with the common options.
             <div>
                 <p-dynamic-field type="text" :options="{}" data="Basic text type"></p-dynamic-field>
                 <br/><br/>
-                <p-dynamic-field type="text" :options="{link: 'https://www.google.com'}" data="Text type with link"></p-dynamic-field>
+                <p-dynamic-field type="text" :options="{link: 'https://https://cloudforet.io'}" data="Text type with link"></p-dynamic-field>
+                <br/><br/>
+                <p-dynamic-field type="text" :options="{link: 'https://https://cloudforet.io', link_highlighting: true}" data="Text type with higtlighting link"></p-dynamic-field>
                 <br/><br/>
                 <p-dynamic-field type="list" :options="{
                     sub_key: 'data',
@@ -223,6 +233,13 @@ It's options are the same with the common options.
                         type: 'text'
                     }
                 }" :data="'Text type with link in list(list will be deprecated)'.split(' ').map(d => ({ data: d}))"></p-dynamic-field>
+                <br/><br/>
+                <p class="font-bold my-4 text-lg"> with link_action_icon </p>
+                <p-dynamic-field type="text" :options="{link: 'https://https://cloudforet.io'}" data="Text type with action_icon(default: internal-link)"></p-dynamic-field>
+                <br/><br/>
+                <p-dynamic-field type="text" :options="{link: 'https://https://cloudforet.io', link_action_icon: 'external-link'}" data="external-link"></p-dynamic-field>
+                <br/><br/>
+                <p-dynamic-field type="text" :options="{link: 'https://https://cloudforet.io', link_action_icon: 'none'}" data="none"></p-dynamic-field>
                 <br/><br/>
                 <p class="font-bold my-4 text-lg">postfix (%)</p>
                 <p-dynamic-field type="text" :options="{postfix: '%'}" data="70"></p-dynamic-field>

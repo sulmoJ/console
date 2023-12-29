@@ -59,10 +59,13 @@ export default defineComponent<TextDynamicFieldProps>({
         });
         const linkProps = computed(() => {
             if (props.options.link) {
+                const defaultActionIcon = ACTION_ICON.INTERNAL_LINK;
+                const actionIcon = props.options.link_action_icon ?? defaultActionIcon;
                 return {
                     href: props.options?.link,
                     text: text.value,
-                    actionIcon: text.value ? ACTION_ICON.INTERNAL_LINK : ACTION_ICON.NONE,
+                    actionIcon: text.value ? actionIcon : undefined,
+                    highlight: props.options.link_highlighting ?? false,
                     newTab: true,
                 };
             }
