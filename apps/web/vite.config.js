@@ -75,6 +75,7 @@ export default defineConfig(async ({ command, mode }) => {
                 vue: path.resolve(__dirname, '../../node_modules/vue/dist/vue.js'),
             },
         },
+        parallel: false,
         define: {
             VITE_APP_VER: JSON.stringify(process.env.npm_package_version),
             // Add env variables here
