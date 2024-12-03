@@ -51,15 +51,12 @@ jobs:
 
       - name: Import GPG key
         id: import-gpg
-        uses: crazy-max/ghaction-import-gpg@v5
+        uses: crazy-max/ghaction-import-gpg@v6.2.0  
         with:
-          git_user_signingkey: true
-          git_commit_gpgsign: true
-          git_config_global: true
           gpg_private_key: ${{ secrets.SULMO_ADMIN_GPG_KEY_ID }}
           passphrase: ${{ secrets.SULMO_GPG_PASSPHRASE }}
-          git_committer_name: ${{ github.actor }}
-          git_committer_email: ${{ github.actor }}@users.noreply.github.com
+          git_user_signingkey: true
+          git_commit_gpgsign: true
 
       - name: Configure git
         run: |
