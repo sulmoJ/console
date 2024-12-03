@@ -93,8 +93,8 @@ jobs:
           file: ./apps/web/Dockerfile
           push: true
           tags: |
-            cloudforetdev/${{ github.event.repository.name }}:latest
-            cloudforetdev/${{ github.event.repository.name }}:${{ env.TIME }}
+            sulmo/${{ github.event.repository.name }}:latest
+            sulmo/${{ github.event.repository.name }}:${{ env.TIME }}
           cache-from: cloudforetdev/${{ env.SERVICE }}:latest
           cache-to: type=inline
           provenance: false
