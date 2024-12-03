@@ -2,6 +2,11 @@ name: "[Dispatch] Dev build"
 
 on:
   workflow_dispatch:
+    inputs:
+        version:
+          description: 'enter version(x.y.z)'
+          required: true
+          default: '2.0.0'
 
 env:
   SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
