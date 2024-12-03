@@ -54,14 +54,7 @@ jobs:
           git config --global user.email "${{ vars.GIT_EMAIL }}"
           git config --global user.name "${{ vars.GIT_USERNAME }}"
 
-      - name: Check if there are any changes
-        id: check_changes
-        run: |
-          git diff --exit-code --quiet || echo "::set-output name=changed::true"
-        continue-on-error: true
-
       - name: Commit changes and Set current commit SHA to output
-        if: steps.check_changes.outputs.changed == 'true'
         id: get_sha
         run: |
           git commit -S -am "chore: version ${{ env.VERSION }}"
