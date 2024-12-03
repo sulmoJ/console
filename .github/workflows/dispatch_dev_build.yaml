@@ -76,7 +76,6 @@ jobs:
           GIT_COMMITTER_EMAIL: ${{ steps.import-gpg.outputs.email }}
 
       - name: Push changes
-        if: steps.check_changes.outputs.changed == 'true'
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.PAT_TOKEN }}
