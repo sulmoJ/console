@@ -67,7 +67,7 @@ jobs:
       - name: Commit changes and Set current commit SHA to output
         id: get_sha
         run: |
-          git commit -s -am "chore: version ${{ env.VERSION }}"
+          git commit -am "chore: version ${{ env.VERSION }}\n\nSigned-off-by: sulmo <tjdah0853@gmail.com>"
           echo "NEW_COMMIT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
         env:
           GIT_AUTHOR_NAME: ${{ vars.GIT_USERNAME }}
