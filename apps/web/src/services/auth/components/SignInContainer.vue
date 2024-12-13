@@ -38,7 +38,6 @@ const state = reactive({
         height: 100%;
         top: 0;
         bottom: 0;
-        background-image: url('@/assets/images/img_blurred-background-min.png');
         &:not(.is-centered) {
             @apply bg-white;
         }
