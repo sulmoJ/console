@@ -29,6 +29,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Get PR information
+        id: pr_info
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const prNumber = context.issue.number;
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+            return pullRequest.head.ref;
+
       # 3. Node.js 환경 설정
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -45,8 +58,8 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_CLOUDFORET_TOKEN }} # Vercel API 토큰
         run: |
-          BRANCH_NAME=${{ github.head_ref }}
-          echo "Deploying preview for branch $BRANCH_NAME... <${{ toJSON(github) }}>"
+          BRANCH_NAME=${{ steps.pr_info.outputs.result }}
+          echo "Deploying preview for branch $BRANCH_NAME"
           DEPLOY_URL=$(vercel --token $VERCEL_TOKEN --yes -m githubBranch=$BRANCH_NAME)
           echo "DEPLOY_URL=$DEPLOY_URL" >> $GITHUB_ENV
 
