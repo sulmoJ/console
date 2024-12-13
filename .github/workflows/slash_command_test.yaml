@@ -25,10 +25,6 @@ jobs:
           echo "Commenter: $COMMENTER"
           echo "PR branch: ${{ github.head_ref }}"
 
-      # 2. GitHub 레포지토리 체크아웃
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
       - name: Get PR information
         id: pr_info
         uses: actions/github-script@v6
@@ -63,7 +59,6 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_CLOUDFORET_TOKEN }} # Vercel API 토큰
         run: |
-          BRANCH_NAME=${{ steps.pr_info.outputs.result }}
           echo "Deploying preview for branch $BRANCH_NAME"
           DEPLOY_URL=$(vercel --token $VERCEL_TOKEN --yes --env GITHUB_BRANCH=$BRANCH_NAME)
           echo "DEPLOY_URL=$DEPLOY_URL" >> $GITHUB_ENV
