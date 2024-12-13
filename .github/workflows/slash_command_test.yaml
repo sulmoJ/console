@@ -60,7 +60,7 @@ jobs:
         run: |
           BRANCH_NAME=${{ steps.pr_info.outputs.result }}
           echo "Deploying preview for branch $BRANCH_NAME"
-          DEPLOY_URL=$(vercel --token $VERCEL_TOKEN --yes -A ./vercel.json --env GITHUB_BRANCH=$BRANCH_NAME)
+          DEPLOY_URL=$(vercel --token $VERCEL_TOKEN --yes --env GITHUB_BRANCH=$BRANCH_NAME)
           echo "DEPLOY_URL=$DEPLOY_URL" >> $GITHUB_ENV
 
       # 6. PR에 Preview URL 댓글 추가
