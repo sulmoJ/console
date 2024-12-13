@@ -42,6 +42,11 @@ jobs:
             });
             return pullRequest.head.ref;
 
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ steps.pr_info.outputs.result }}
+
       # 3. Node.js 환경 설정
       - name: Setup Node.js
         uses: actions/setup-node@v3
