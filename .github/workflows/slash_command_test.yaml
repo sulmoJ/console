@@ -1,0 +1,16 @@
+name: Run on Command
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  run-action-on-command:
+    if: github.event.comment.body == '/run-action'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Run a script
+        run: echo "GitHub Action 실행 중!"
