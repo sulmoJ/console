@@ -1,16 +1,64 @@
-name: Run on Command
+name: Deploy Vercel Preview on Comment
 
 on:
   issue_comment:
     types: [created]
 
 jobs:
-  run-action-on-command:
-    if: github.event.comment.body == '/run-action'
+  deploy-preview:
+    if: startsWith(github.event.comment.body, '/preview')
     runs-on: ubuntu-latest
+
     steps:
+      # 1. 댓글 작성자와 PR 정보 확인
+      - name: Verify context
+        id: verify
+        run: |
+          # PR 이벤트인지 확인
+          if [[ "${{ github.event.issue.pull_request.url }}" == "" ]]; then
+            echo "🚫 This action only supports comments on PRs."
+            exit 1
+          fi
+
+          # 댓글 작성자 확인 (필요 시 추가 제약 가능)
+          COMMENTER=${{ github.event.comment.user.login }}
+          echo "Commenter: $COMMENTER"
+          echo "PR branch: ${{ github.head_ref }}"
+
+      # 2. GitHub 레포지토리 체크아웃
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Run a script
-        run: echo "GitHub Action 실행 중!"
+      # 3. Node.js 환경 설정
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      # 4. Vercel CLI 설치
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      # 5. Vercel Preview 배포
+      - name: Deploy to Vercel
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_CLOUDFORET_TOKEN }} # Vercel API 토큰
+        run: |
+          BRANCH_NAME=${{ github.head_ref }}
+          DEPLOY_URL=$(vercel --token $VERCEL_TOKEN --confirm -m githubBranch=$BRANCH_NAME)
+          echo "DEPLOY_URL=$DEPLOY_URL" >> $GITHUB_ENV
+
+      # 6. PR에 Preview URL 댓글 추가
+      - name: Comment on PR
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const url = process.env.DEPLOY_URL;
+            const commentBody = `🚀 Preview deployed for branch \`${{ github.head_ref }}\`: [View Preview](${url})`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: commentBody
+            })
