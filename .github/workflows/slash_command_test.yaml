@@ -46,7 +46,7 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_CLOUDFORET_TOKEN }} # Vercel API 토큰
         run: |
           BRANCH_NAME=${{ github.head_ref }}
-          echo "Deploying preview for branch $BRANCH_NAME... <${{ github }}>"
+          echo "Deploying preview for branch $BRANCH_NAME... <${{ toJSON(github) }}>"
           DEPLOY_URL=$(vercel --token $VERCEL_TOKEN --yes -m githubBranch=$BRANCH_NAME)
           echo "DEPLOY_URL=$DEPLOY_URL" >> $GITHUB_ENV
 
