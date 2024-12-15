@@ -86,6 +86,8 @@ const showsBrowserRecommendation = () => {
     return (!supportsBrowser() && !LocalStorageAccessor.getItem('showBrowserRecommendation'));
 };
 
+console.log('>>>>>>>>>>>>>> omlus');
+
 watch(() => route.path, () => {
     state.notificationEmailModalVisible = route.path !== '/'
         && state.routeScope !== 'EXCLUDE_AUTH'
