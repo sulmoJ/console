@@ -25,10 +25,44 @@ jobs:
 
           COMMENTER=${{ github.event.comment.user.login }}
           echo "Commenter: $COMMENTER"
-          echo "PR branch: ${{ github.head_ref }}"
 
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Check organization membership
+        id: check_membership
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const commenter = context.payload.comment.user.login;
+            const orgName = context.repo.owner; // Assuming repo owner is the organization
+            try {
+              const { status } = await github.rest.orgs.checkMembershipForUser({
+                org: orgName,
+                username: commenter
+              });
+              if (status !== 204) {
+                throw new Error("User is not a member of the organization");
+              }
+              core.setOutput('is_member', true);
+            } catch (error) {
+              console.log(error.message);
+              core.setOutput('is_member', false);
+              core.setOutput('error_message', error.message);
+            }
+          result-encoding: string
+
+      - name: Comment and stop if not a member
+        if: steps.check_membership.outputs.is_member == 'false'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const errorMessage = `🚫 Commenter \`${context.payload.comment.user.login}\` is not a member of the organization and cannot trigger a preview deployment.`;
+            console.error(errorMessage);
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: errorMessage
+            });
+            throw new Error(errorMessage);
 
       - name: Get PR information
         id: pr_info
@@ -41,8 +75,6 @@ jobs:
               repo: context.repo.repo,
               pull_number: prNumber
             });
-            console.log('>context>>>>',JSON.stringify(context));
-            console.log('>PR>>>>>',JSON.stringify(pullRequest));
             core.setOutput('reponame', pullRequest.head.repo.full_name);
             core.setOutput('branch', pullRequest.head.ref);
 
