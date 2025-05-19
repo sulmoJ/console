@@ -10,24 +10,25 @@ import { isEmpty } from 'lodash';
 import {
     PI, screens, PButton, PTextButton, PTooltip,
 } from '@cloudforet/mirinae';
-import type { ContextMenuType } from '@cloudforet/mirinae/src/controls/context-menu/type';
+import type { ContextMenuType } from '@cloudforet/mirinae/types/controls/context-menu/type';
 
+import { useAppContextStore } from '@/store/app-context/app-context-store';
 import { useUserWorkspaceStore } from '@/store/app-context/workspace/user-workspace-store';
-import { useDisplayStore } from '@/store/display/display-store';
-import type { DisplayMenu } from '@/store/display/type';
+import type { DisplayMenu } from '@/store/menu/type';
 import { useAllReferenceStore } from '@/store/reference/all-reference-store';
 import type { CostDataSourceReferenceMap } from '@/store/reference/cost-data-source-reference-store';
 
 import type { MenuId } from '@/lib/menu/config';
 import { MENU_ID } from '@/lib/menu/config';
+import { useAllMenuList } from '@/lib/menu/use-all-menu-list';
 
 import BetaMark from '@/common/components/marks/BetaMark.vue';
 import NewMark from '@/common/components/marks/NewMark.vue';
 import UpdateMark from '@/common/components/marks/UpdateMark.vue';
 import { useCurrentMenuId } from '@/common/composables/current-menu-id';
-import { useProperRouteLocation } from '@/common/composables/proper-route-location';
 import { useGnbStore } from '@/common/modules/navigations/stores/gnb-store';
 
+import { ADMIN_COST_EXPLORER_ROUTE } from '@/services/cost-explorer/routes/admin/route-constant';
 import { COST_EXPLORER_ROUTE } from '@/services/cost-explorer/routes/route-constant';
 
 interface GNBMenuType extends DisplayMenu {
@@ -38,12 +39,12 @@ interface GNBMenuType extends DisplayMenu {
 
 const allReferenceStore = useAllReferenceStore();
 const allReferenceGetters = allReferenceStore.getters;
-const { getProperRouteLocation } = useProperRouteLocation();
+const appContextStore = useAppContextStore();
 const gnbStore = useGnbStore();
 const gnbGetters = gnbStore.getters;
 const userWorkspaceStore = useUserWorkspaceStore();
 const userWorkspaceGetters = userWorkspaceStore.getters;
-const displayStore = useDisplayStore();
+const { getAllMenuList } = useAllMenuList();
 
 const route = useRoute();
 const router = useRouter();
@@ -52,13 +53,14 @@ const { width } = useWindowSize();
 const { currentMenuId } = useCurrentMenuId();
 
 const storeState = reactive({
+    isAdminMode: computed(() => appContextStore.getters.isAdminMode),
     isHideNavRail: computed(() => gnbGetters.isHideNavRail),
     isMinimizeNavRail: computed(() => gnbGetters.isMinimizeNavRail),
     currentWorkspaceId: computed(() => userWorkspaceGetters.currentWorkspaceId),
     costDataSource: computed<CostDataSourceReferenceMap>(() => allReferenceGetters.costDataSource),
 });
 
-const noParentsMenuList:MenuId[] = [MENU_ID.DASHBOARDS, MENU_ID.WORKSPACE_HOME, MENU_ID.PROJECT];
+const noParentsMenuList:MenuId[] = [MENU_ID.WORKSPACE_HOME, MENU_ID.DASHBOARDS, MENU_ID.PROJECT, MENU_ID.SERVICE_ACCOUNT];
 
 const state = reactive({
     isInit: false as boolean|undefined,
@@ -67,7 +69,7 @@ const state = reactive({
     isMenuDescription: undefined as boolean | undefined,
     gnbMenuList: computed<GNBMenuType[]|undefined>(() => {
         let results = [] as GNBMenuType[];
-        const allMenuList = displayStore.getAllMenuList(route);
+        const allMenuList = getAllMenuList(route, router);
         const menuList = allMenuList.filter((d) => !d.hideOnGNB);
         if (state.isInit && isEmpty(storeState.costDataSource)) {
             results = removeCostExplorerFromMenuList(menuList);
@@ -106,9 +108,9 @@ const handleMouseEvent = (value: boolean) => {
 const handleMenuDescription = (value?: boolean) => {
     state.isMenuDescription = value;
     if (value) {
-        router.push(getProperRouteLocation({
-            name: COST_EXPLORER_ROUTE.LANDING._NAME,
-        }));
+        router.push({
+            name: storeState.isAdminMode ? ADMIN_COST_EXPLORER_ROUTE.LANDING._NAME : COST_EXPLORER_ROUTE.LANDING._NAME,
+        }).catch(() => {});
     }
 };
 const handleMinimizedGnbRail = () => {

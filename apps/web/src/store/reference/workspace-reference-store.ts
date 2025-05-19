@@ -6,14 +6,14 @@ import { defineStore } from 'pinia';
 import { SpaceConnector } from '@cloudforet/core-lib/space-connector';
 
 import type { ListResponse } from '@/api-clients/_common/schema/api-verbs/list';
-import type { WorkspaceListParameters } from '@/schema/identity/workspace/api-verbs/list';
-import type { WorkspaceModel } from '@/schema/identity/workspace/model';
+import type { WorkspaceListParameters } from '@/api-clients/identity/workspace/schema/api-verbs/list';
+import type { WorkspaceModel } from '@/api-clients/identity/workspace/schema/model';
 
 import { useAppContextStore } from '@/store/app-context/app-context-store';
+import { useAuthorizationStore } from '@/store/authorization/authorization-store';
 import type {
     ReferenceLoadOptions, ReferenceItem, ReferenceMap, ReferenceTypeInfo,
 } from '@/store/reference/type';
-import { useUserStore } from '@/store/user/user-store';
 
 import { MANAGED_VARIABLE_MODELS } from '@/lib/variable-models/managed-model-config/base-managed-model-config';
 
@@ -27,7 +27,7 @@ let lastLoadedTime = 0;
 
 export const useWorkspaceReferenceStore = defineStore('reference-workspace', () => {
     const appContextStore = useAppContextStore();
-    const userStore = useUserStore();
+    const authorizationStore = useAuthorizationStore();
     const _state = reactive({
         isAdminMode: computed(() => appContextStore.getters.isAdminMode),
     });
@@ -37,7 +37,7 @@ export const useWorkspaceReferenceStore = defineStore('reference-workspace', () 
 
     const getters = reactive({
         workspaceItems: asyncComputed<WorkspaceReferenceMap>(async () => {
-            if (!userStore.state.currentGrantInfo?.scope || userStore.state.currentGrantInfo?.scope === 'USER') return {};
+            if (!authorizationStore.state.currentGrantInfo?.scope || authorizationStore.state.currentGrantInfo?.scope === 'USER') return {};
             if (state.items === null) await load();
             return state.items ?? {};
         }, {}, { lazy: true }),

@@ -39,19 +39,23 @@
 
 <script setup lang="ts">
 
+import type { TranslateResult } from 'vue-i18n';
+
 import PButton from '@/controls/buttons/button/PButton.vue';
 import type { ButtonStyle } from '@/controls/buttons/button/type';
 import { BUTTON_STYLE } from '@/controls/buttons/button/type';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 import imgGhost from '@/data-display/empty/assets/img_ghost.png';
 import { EmptyImageSize } from '@/data-display/empty/type';
 
 interface EmptyProps {
     showImage?: boolean;
     imageSize?: EmptyImageSize;
-    title?: string;
+    title?: TranslateResult;
     showButton?: boolean;
     buttonStyleType?: ButtonStyle;
-    buttonTitle?: string;
+    buttonTitle?: TranslateResult;
 }
 
 const props = withDefaults(defineProps<EmptyProps>(), {

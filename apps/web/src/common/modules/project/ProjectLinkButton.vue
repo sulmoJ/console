@@ -1,16 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { Location } from 'vue-router';
+import type { Location } from 'vue-router/types/router';
 
 import {
     PTextButton, PI, PLink, PSkeleton,
 } from '@cloudforet/mirinae';
 
+
+import { useReferenceRouter } from '@/router/composables/use-reference-router';
+
 import { useProjectReferenceStore } from '@/store/reference/project-reference-store';
-
-import { useProperRouteLocation } from '@/common/composables/proper-route-location';
-
-import { PROJECT_ROUTE } from '@/services/project-v1/routes/route-constant';
 
 const props = defineProps<{
     projectId: string;
@@ -21,14 +20,11 @@ const props = defineProps<{
 const emit = defineEmits<{(event: 'click'): void;
 }>();
 const projectReferenceStore = useProjectReferenceStore();
-const { getProperRouteLocation } = useProperRouteLocation();
+
+const { getReferenceLocation } = useReferenceRouter();
+
 const hasProjectReferenceLoaded = computed<boolean>(() => !!projectReferenceStore.getters.projectItems);
-const projectPageLocation = computed<Location>(() => (getProperRouteLocation({
-    name: PROJECT_ROUTE.DETAIL._NAME,
-    params: {
-        id: props.projectId,
-    },
-})));
+const projectPageLocation = computed<Location>(() => getReferenceLocation(props.projectId, { resource_type: 'identity.Project' }));
 const getProjectName = (projectId: string): string|undefined => projectReferenceStore.getters.projectItems[projectId]?.label;
 </script>
 

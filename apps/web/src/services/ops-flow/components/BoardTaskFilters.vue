@@ -11,6 +11,7 @@ import type { SelectDropdownMenuItem } from '@cloudforet/mirinae/types/controls/
 import ProjectSelectDropdown from '@/common/modules/project/ProjectSelectDropdown.vue';
 import UserSelectDropdown from '@/common/modules/user/UserSelectDropdown.vue';
 
+import { useTaskIdsField } from '@/services/ops-flow/composables/use-task-ids-field';
 import { useTaskStatusField } from '@/services/ops-flow/composables/use-task-status-field';
 import { useTaskTypeField } from '@/services/ops-flow/composables/use-task-type-field';
 import {
@@ -26,11 +27,26 @@ const emit = defineEmits<{(event: 'update', value: TaskFilters): void;
 
 const taskManagementTemplateStore = useTaskManagementTemplateStore();
 
+/* task id */
+const {
+    selectedTaskIdItems,
+    taskIdMenuItemsHandler,
+    setSelectedTaskIdItems,
+    taskIdsDropdownKey,
+} = useTaskIdsField({
+    categoryId: toRef(props, 'categoryId'),
+    isRequired: true,
+});
+const handleUpdateSelectedTaskIdItems = (items: SelectDropdownMenuItem[]) => {
+    setSelectedTaskIdItems(items);
+};
+
 /* task type */
 const {
     selectedTaskTypeItems,
     taskTypeMenuItemsHandler,
     setSelectedTaskTypeItems,
+    taskTypesDropdownKey,
 } = useTaskTypeField({
     categoryId: toRef(props, 'categoryId'),
     isRequired: true,
@@ -44,6 +60,7 @@ const {
     selectedStatusItems,
     statusMenuItemsHandler,
     setSelectedStatusItems,
+    taskStatusDropdownKey,
 } = useTaskStatusField({
     categoryId: toRef(props, 'categoryId'),
     isRequired: true,
@@ -72,6 +89,7 @@ const handleUpdateAssignee = (userIds: string[]) => {
 
 /* event */
 const taskFilters = computed<TaskFilters>(() => ({
+    taskId: selectedTaskIdItems.value.map((d) => d.name),
     taskType: selectedTaskTypeItems.value.map((d) => d.name),
     status: selectedStatusItems.value.map((d) => d.name),
     project: selectedProjectIds.value,
@@ -87,7 +105,23 @@ watch(taskFilters, (newValue, oldValue) => {
 
 <template>
     <div class="flex flex-wrap gap-4">
+        <div v-if="props.categoryId">
+            <p-select-dropdown :key="taskIdsDropdownKey"
+                               :selected="selectedTaskIdItems"
+                               :handler="taskIdMenuItemsHandler"
+                               :selection-label="String($t('OPSFLOW.FIELD_ID', { field: taskManagementTemplateStore.templates.task }))"
+                               appearance-type="badge"
+                               style-type="rounded"
+                               multi-selectable
+                               show-select-marker
+                               show-delete-all-button
+                               is-filterable
+                               menu-width="12rem"
+                               @update:selected="handleUpdateSelectedTaskIdItems"
+            />
+        </div>
         <p-select-dropdown v-if="props.categoryId"
+                           :key="taskTypesDropdownKey"
                            :selected="selectedTaskTypeItems"
                            :handler="taskTypeMenuItemsHandler"
                            :selection-label="taskManagementTemplateStore.templates.TaskType"
@@ -99,6 +133,7 @@ watch(taskFilters, (newValue, oldValue) => {
                            @update:selected="handleUpdateSelectedTaskTypeItems"
         />
         <p-select-dropdown v-if="props.categoryId"
+                           :key="taskStatusDropdownKey"
                            :selected="selectedStatusItems"
                            :handler="statusMenuItemsHandler"
                            :selection-label="$t('OPSFLOW.STATUS')"
@@ -121,7 +156,7 @@ watch(taskFilters, (newValue, oldValue) => {
                                  project-selectable
                                  :project-group-selectable="false"
                                  :selected-project-ids="selectedProjectIds"
-                                 :selection-label="$t('OPSFLOW.PROJECT')"
+                                 :selection-label="String($t('OPSFLOW.PROJECT'))"
                                  style-type="rounded"
                                  appearance-type="badge"
                                  show-delete-all-button
@@ -132,7 +167,7 @@ watch(taskFilters, (newValue, oldValue) => {
             <user-select-dropdown multi-selectable
                                   use-fixed-menu-style
                                   :selected-ids="selectedCreatedBy"
-                                  :selection-label="$t('OPSFLOW.CREATED_BY')"
+                                  :selection-label="String($t('OPSFLOW.CREATED_BY'))"
                                   style-type="rounded"
                                   :show-user-group-list="false"
                                   appearance-type="badge"
@@ -144,7 +179,7 @@ watch(taskFilters, (newValue, oldValue) => {
             <user-select-dropdown multi-selectable
                                   use-fixed-menu-style
                                   :selected-ids="selectedAssignee"
-                                  :selection-label="$t('OPSFLOW.ASSIGNEE')"
+                                  :selection-label="String($t('OPSFLOW.ASSIGNEE'))"
                                   style-type="rounded"
                                   :show-user-group-list="false"
                                   appearance-type="badge"

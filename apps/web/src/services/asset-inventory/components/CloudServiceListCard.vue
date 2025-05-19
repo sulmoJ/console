@@ -18,16 +18,15 @@ import type { ProviderReferenceMap } from '@/store/reference/provider-reference-
 import { assetUrlConverter } from '@/lib/helper/asset-helper';
 import { arrayToQueryString, objectToQueryString } from '@/lib/router-query-string';
 
-import { useProperRouteLocation } from '@/common/composables/proper-route-location';
 import { useTextOverflowState } from '@/common/composables/text-overflow-state';
 
+import { ADMIN_ASSET_INVENTORY_ROUTE } from '@/services/asset-inventory/routes/admin/route-constant';
 import { ASSET_INVENTORY_ROUTE } from '@/services/asset-inventory/routes/route-constant';
 import { useCloudServiceLSBStore } from '@/services/asset-inventory/stores/cloud-service-l-s-b-store';
 import { useCloudServicePageStore } from '@/services/asset-inventory/stores/cloud-service-page-store';
+import type { CloudServiceAnalyzeResult, CloudServiceAnalyzeResultResource } from '@/services/asset-inventory/types/cloud-service-card-type';
 import type { CloudServiceDetailPageUrlQuery } from '@/services/asset-inventory/types/cloud-service-page-type';
 import type { Period } from '@/services/asset-inventory/types/type';
-
-import type { CloudServiceAnalyzeResult, CloudServiceAnalyzeResultResource } from '../types/cloud-service-card-type';
 
 interface Props {
     item: CloudServiceAnalyzeResult;
@@ -50,7 +49,6 @@ const cloudServiceLSBStore = useCloudServiceLSBStore();
 
 const allReferenceStore = useAllReferenceStore();
 
-const { getProperRouteLocation } = useProperRouteLocation();
 
 const state = reactive({
     isAdminMode: computed(() => appContextStore.getters.isAdminMode),
@@ -93,15 +91,15 @@ const getCloudServiceDetailLink = (item: CloudServiceAnalyzeResult, resource?: C
         filters: cloudServiceDetailQueryHelper.rawQueryStrings,
         period: objectToQueryString(cloudServicePageState.period),
     };
-    const res: Location = getProperRouteLocation({
-        name: ASSET_INVENTORY_ROUTE.CLOUD_SERVICE.DETAIL._NAME,
+    const res: Location = {
+        name: state.isAdminMode ? ADMIN_ASSET_INVENTORY_ROUTE.CLOUD_SERVICE.DETAIL._NAME : ASSET_INVENTORY_ROUTE.CLOUD_SERVICE.DETAIL._NAME,
         params: {
             provider: item.provider,
             group: item.cloud_service_group,
             name: targetCloudServiceType.cloud_service_type,
         },
         query,
-    });
+    };
     return res;
 };
 

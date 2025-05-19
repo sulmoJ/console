@@ -8,23 +8,22 @@ import { SpaceConnector } from '@cloudforet/core-lib/space-connector';
 import {
     PHeading, PDataTable, PLink, PBadge,
 } from '@cloudforet/mirinae';
-import { ACTION_ICON } from '@cloudforet/mirinae/src/navigation/link/type';
+
 
 
 import type { Tags } from '@/api-clients/_common/schema/model';
-import type { UserGetParameters } from '@/schema/identity/user/api-verbs/get';
-import type { UserModel } from '@/schema/identity/user/model';
+import type { UserGetParameters } from '@/api-clients/identity/user/schema/api-verbs/get';
+import type { UserModel } from '@/api-clients/identity/user/schema/model';
 import { i18n } from '@/translations';
 
+import { useReferenceRouter } from '@/router/composables/use-reference-router';
+
+import { useUserWorkspaceStore } from '@/store/app-context/workspace/user-workspace-store';
 import { useAllReferenceStore } from '@/store/reference/all-reference-store';
 import type { ProjectGroupReferenceItem, ProjectGroupReferenceMap } from '@/store/reference/project-group-reference-store';
 import type { ProjectReferenceItem } from '@/store/reference/project-reference-store';
 
-import { referenceRouter } from '@/lib/reference/referenceRouter';
-
 import ErrorHandler from '@/common/composables/error/errorHandler';
-import { useProperRouteLocation } from '@/common/composables/proper-route-location';
-
 
 interface UserRoleItem {
     labels?: string[]|string;
@@ -45,9 +44,12 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const router = useRouter();
-const { getProperRouteLocation } = useProperRouteLocation();
 
 const allReferenceStore = useAllReferenceStore();
+const userWorkspaceStore = useUserWorkspaceStore();
+
+const { getReferenceLocation } = useReferenceRouter();
+
 const state = reactive({
     title: computed(() => i18n.t('IAM.USER.MAIN.ASSIGNED_ROLES')),
     loading: true,
@@ -65,15 +67,21 @@ const state = reactive({
 
 const getProjectLink = (value, isProject: boolean) => {
     if (isProject) {
-        const link = router.resolve(referenceRouter(value, {
+        const link = router.resolve(getReferenceLocation(value, {
             resource_type: 'identity.Project',
         }));
-        return link.resolved;
+        return {
+            ...link.resolved,
+            workspaceId: userWorkspaceStore.getters.currentWorkspaceId,
+        };
     }
-    const link = router.resolve(referenceRouter(value, {
+    const link = router.resolve(getReferenceLocation(value, {
         resource_type: 'identity.ProjectGroup',
     }));
-    return link.resolved;
+    return {
+        ...link.resolved,
+        workspaceId: userWorkspaceStore.getters.currentWorkspaceId,
+    };
 };
 
 const getUserDetailData = async (userId) => {
@@ -114,9 +122,9 @@ watch(() => props.userId, () => {
         >
             <template #col-project_group_info.project_group_id-format="{value}">
                 <p-link v-if="value"
-                        :action-icon="ACTION_ICON.INTERNAL_LINK"
+                        action-icon="internal-link"
                         new-tab
-                        :to="getProperRouteLocation(getProjectLink(value, false))"
+                        :to="getProjectLink(value, false)"
                 >
                     {{ state.projectGroups[value] ? state.projectGroups[value].label : value }}
                 </p-link>
@@ -126,9 +134,9 @@ watch(() => props.userId, () => {
             </template>
             <template #col-project_info.project_id-format="{value}">
                 <p-link v-if="value"
-                        :action-icon="ACTION_ICON.INTERNAL_LINK"
+                        action-icon="internal-link"
                         new-tab
-                        :to="getProperRouteLocation(getProjectLink(value, true))"
+                        :to="getProjectLink(value, true)"
                 >
                     {{ state.projects[value] ? state.projects[value].label : value }}
                 </p-link>

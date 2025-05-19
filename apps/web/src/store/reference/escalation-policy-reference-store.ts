@@ -3,41 +3,36 @@ import { computed, reactive } from 'vue';
 
 import { defineStore } from 'pinia';
 
-import { SpaceConnector } from '@cloudforet/core-lib/space-connector';
-
-import type { ListResponse } from '@/api-clients/_common/schema/api-verbs/list';
-import type { EscalationPolicyListParameters } from '@/schema/alert-manager/escalation-policy/api-verbs/list';
 import type { EscalationPolicyModel } from '@/schema/alert-manager/escalation-policy/model';
-import type { EscalationPolicyListParameters as EscalationPolicyListParametersV1 } from '@/schema/monitoring/escalation-policy/api-verbs/list';
 import type { EscalationPolicyModel as EscalationPolicyModelV1 } from '@/schema/monitoring/escalation-policy/model';
 
 import type {
     ReferenceLoadOptions, ReferenceItem, ReferenceMap, ReferenceTypeInfo,
 } from '@/store/reference/type';
-import { useUserStore } from '@/store/user/user-store';
 
-
-import { useIsAlertManagerV2Enabled } from '@/lib/config/composables/use-is-alert-manager-v2-enabled';
+import APIClientManager from '@/lib/config/global-config/api-client-manager';
 
 import ErrorHandler from '@/common/composables/error/errorHandler';
 
+import { useAuthorizationStore } from '../authorization/authorization-store';
 
-export type EscalationPolicyItem = Required<Pick<ReferenceItem<EscalationPolicyModel>, 'key'|'label'|'name'|'data'>>;
+
+export type EscalationPolicyItem = Required<Pick<ReferenceItem<EscalationPolicyModel|EscalationPolicyModelV1>, 'key'|'label'|'name'|'data'>>;
 export type EscalationPolicyReferenceMap = ReferenceMap<EscalationPolicyItem>;
 
 const LOAD_TTL = 1000 * 60 * 60 * 3; // 3 hours
 let lastLoadedTime = 0;
 
 export const useEscalationPolicyReferenceStore = defineStore('reference-escalation-policy', () => {
-    const userStore = useUserStore();
+    const authorizationStore = useAuthorizationStore();
+
     const state = reactive({
         items: null as EscalationPolicyReferenceMap | null,
     });
-    const isAlertManagerV2Enabled = useIsAlertManagerV2Enabled();
 
     const getters = reactive({
         escalationPolicyItems: asyncComputed<EscalationPolicyReferenceMap>(async () => {
-            if (userStore.state.currentGrantInfo?.scope !== 'WORKSPACE') return {};
+            if (authorizationStore.state.currentGrantInfo?.scope !== 'WORKSPACE') return {};
             if (state.items === null) await load();
             return state.items ?? {};
         }, {}, { lazy: true }),
@@ -59,18 +54,14 @@ export const useEscalationPolicyReferenceStore = defineStore('reference-escalati
         ) return;
 
         const referenceMap: EscalationPolicyReferenceMap = {};
+        const alertManagerClient = APIClientManager.alertManager;
+        if (!alertManagerClient) return;
         try {
-            const fetcher = isAlertManagerV2Enabled.value
-                ? SpaceConnector.clientV2.alertManager.escalationPolicy.list<EscalationPolicyListParameters, ListResponse<EscalationPolicyModel>>({
-                    query: {
-                        only: ['escalation_policy_id', 'name', 'service_id'],
-                    },
-                })
-                : SpaceConnector.clientV2.monitoring.escalationPolicy.list<EscalationPolicyListParametersV1, ListResponse<EscalationPolicyModelV1>>({
-                    query: {
-                        only: ['escalation_policy_id', 'name', 'resource_group', 'project_id'],
-                    },
-                });
+            const fetcher = alertManagerClient.endpoint.escalationPolicy.list({
+                query: {
+                    only: alertManagerClient.version === 'V1' ? ['escalation_policy_id', 'name', 'resource_group', 'project_id'] : ['escalation_policy_id', 'name', 'service_id'],
+                },
+            });
 
             const response = await fetcher;
 

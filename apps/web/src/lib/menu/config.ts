@@ -1,16 +1,19 @@
 // Menu Ids' Rule: All menu ids are dot-delimited in depth, up to two depths.
-import type { HighlightTagType } from '@/store/display/type';
+import type { TranslateResult } from 'vue-i18n';
+
+import type { HighlightTagType } from '@/store/menu/type';
+
 
 export const MENU_ID = Object.freeze({
     WORKSPACE_HOME: 'workspace_home',
     DASHBOARDS: 'dashboards',
     PROJECT: 'project',
+    SERVICE_ACCOUNT: 'service_account',
     ASSET_INVENTORY: 'asset_inventory',
     CLOUD_SERVICE: 'cloud_service',
     SERVER: 'server',
     SECURITY: 'security',
     COLLECTOR: 'collector',
-    SERVICE_ACCOUNT: 'service_account',
     COST_EXPLORER: 'cost_explorer',
     COST_ANALYSIS: 'cost_analysis',
     COST_ADVANCED_SETTINGS: 'cost_advanced_settings',
@@ -53,10 +56,12 @@ export type MenuId = typeof MENU_ID[keyof typeof MENU_ID];
 
 export interface Menu {
     id: MenuId;
+    label?: string|TranslateResult;
     needPermissionByRole?: boolean;
     subMenuList?: Menu[];
     hideOnGNB?: boolean;
     hideOnSiteMap?: boolean;
+    order?: number;
 }
 
 export interface MenuInfo {

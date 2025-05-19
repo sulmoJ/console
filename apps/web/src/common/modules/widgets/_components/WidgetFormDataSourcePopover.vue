@@ -4,16 +4,15 @@ import {
 } from 'vue';
 import type { TranslateResult } from 'vue-i18n';
 
-import { useMutation } from '@tanstack/vue-query';
+import { useMutation, useQueryClient } from '@tanstack/vue-query';
 
 import {
     PButton, PPopover, PSelectCard, PI, PDivider,
 } from '@cloudforet/mirinae';
-import { POPOVER_TRIGGER } from '@cloudforet/mirinae/src/data-display/popover/type';
-
 
 import type { WidgetCreateParams, WidgetModel } from '@/api-clients/dashboard/_types/widget-type';
 import type { DataTableAddParameters } from '@/api-clients/dashboard/public-data-table/schema/api-verbs/add';
+import { useServiceQueryKey } from '@/query/query-key/use-service-query-key';
 import { i18n } from '@/translations';
 
 import { useAllReferenceStore } from '@/store/reference/all-reference-store';
@@ -23,57 +22,60 @@ import type { NamespaceReferenceMap } from '@/store/reference/namespace-referenc
 import { useUserStore } from '@/store/user/user-store';
 
 import { showErrorMessage } from '@/lib/helper/notice-alert-helper';
+import { MENU_ID } from '@/lib/menu/config';
 import getRandomId from '@/lib/random-id-generator';
 import type { ListResponse } from '@/lib/variable-models/_base/types';
 
+import { useContentsAccessibility } from '@/common/composables/contents-accessibility';
 import ErrorHandler from '@/common/composables/error/errorHandler';
 import WidgetFormAssetSecurityDataSourcePopper
     from '@/common/modules/widgets/_components/WidgetFormAssetSecurityDataSourcePopper.vue';
 import WidgetFormCostDataSourcePopper from '@/common/modules/widgets/_components/WidgetFormCostDataSourcePopper.vue';
 import WidgetFormUnifiedCostDataSourcePopper
     from '@/common/modules/widgets/_components/WidgetFormUnifiedCostDataSourcePopper.vue';
-import { useWidgetFormQuery } from '@/common/modules/widgets/_composables/use-widget-form-query';
+import { useWidgetDataTableListQuery } from '@/common/modules/widgets/_composables/use-widget-data-table-list-query';
+import { useWidgetQuery } from '@/common/modules/widgets/_composables/use-widget-query';
 import {
     DATA_SOURCE_DOMAIN,
     DATA_TABLE_OPERATOR,
     DATA_TABLE_TYPE, TRANSFORM_DATA_TABLE_DEFAULT_OPTIONS,
 } from '@/common/modules/widgets/_constants/data-table-constant';
 import { getDuplicatedDataTableName } from '@/common/modules/widgets/_helpers/widget-data-table-helper';
+import { useWidgetContextStore } from '@/common/modules/widgets/_store/widget-context-store';
 import { useWidgetGenerateStore } from '@/common/modules/widgets/_store/widget-generate-store';
 import type { DataTableModel } from '@/common/modules/widgets/types/widget-data-table-type';
 import type {
     DataTableDataType, DataTableSourceType, DataTableOperator, DataTableAddOptions, DataTableTransformOptions,
 } from '@/common/modules/widgets/types/widget-model';
 
-import { useDashboardDetailQuery } from '@/services/dashboards/composables/use-dashboard-detail-query';
-import { useDashboardDetailInfoStore } from '@/services/dashboards/stores/dashboard-detail-info-store';
-
 
 const widgetGenerateStore = useWidgetGenerateStore();
 const widgetGenerateState = widgetGenerateStore.state;
 const allReferenceStore = useAllReferenceStore();
-const dashboardDetailStore = useDashboardDetailInfoStore();
-const dashboardDetailState = dashboardDetailStore.state;
+const widgetContextStore = useWidgetContextStore();
+const widgetContextState = widgetContextStore.state;
+const widgetContextGetters = widgetContextStore.getters;
 const userStore = useUserStore();
+const dashboardId = computed(() => widgetContextGetters.dashboardId);
 
 const emit = defineEmits<{(e: 'scroll'): void;}>();
 
+const { visibleContents } = useContentsAccessibility(MENU_ID.ASSET_INVENTORY);
+
 /* Query */
 const {
-    dataTableList,
-    api,
-    keys: widgetQueryKeys,
-    queryClient,
-} = useWidgetFormQuery({
+    api: widgetApi,
+} = useWidgetQuery({
     widgetId: computed(() => widgetGenerateState.widgetId),
 });
 const {
-    dashboard,
-    keys,
-} = useDashboardDetailQuery({
-    dashboardId: computed(() => dashboardDetailState.dashboardId),
+    dataTableList,
+    keys: dataTableKeys,
+    api: dataTableApi,
+} = useWidgetDataTableListQuery({
+    widgetId: computed(() => widgetGenerateState.widgetId),
 });
-
+const queryClient = useQueryClient();
 
 const storeState = reactive({
     metrics: computed<MetricReferenceMap>(() => allReferenceStore.getters.metric),
@@ -191,22 +193,25 @@ const state = reactive({
 });
 
 /* Api */
+const { withSuffix: privateWidgetListWithSuffix } = useServiceQueryKey('dashboard', 'private-widget', 'list');
+const { withSuffix: publicWidgetListWithSuffix } = useServiceQueryKey('dashboard', 'public-widget', 'list');
+
 const widgetCreateFn = (params: WidgetCreateParams): Promise<WidgetModel> => {
-    if (dashboardDetailState.dashboardId?.startsWith('private')) {
-        return api.privateWidgetAPI.create(params);
+    if (!params.dashboard_id) {
+        throw new Error('dashboardId is undefined');
     }
-    return api.publicWidgetAPI.create(params);
+
+    if (params.dashboard_id.startsWith('private')) {
+        return widgetApi.privateWidgetAPI.create(params);
+    }
+    return widgetApi.publicWidgetAPI.create(params);
 };
 const { mutateAsync: createWidget, isPending: widgetCreateLoading } = useMutation({
     mutationFn: widgetCreateFn,
-    onSuccess: (data) => {
-        const _isPrivate = dashboardDetailState.dashboardId?.startsWith('private');
-        const widgetListQueryKey = _isPrivate ? keys.privateWidgetListQueryKey : keys.publicWidgetListQueryKey;
-        queryClient.setQueryData(widgetListQueryKey.value, (oldData: ListResponse<WidgetModel>) => (oldData.results?.length ? {
-            ...oldData, results: [...oldData.results, data],
-        } : {
-            ...oldData, results: [data],
-        }));
+    onSuccess: (data, variables) => {
+        const _isPrivate = variables.dashboard_id.startsWith('private');
+        const widgetListQueryKey = _isPrivate ? privateWidgetListWithSuffix(variables.dashboard_id) : publicWidgetListWithSuffix(variables.dashboard_id);
+        queryClient.invalidateQueries({ queryKey: widgetListQueryKey });
         widgetGenerateStore.setWidgetFormInfo(data);
     },
     onError: (e) => {
@@ -214,16 +219,16 @@ const { mutateAsync: createWidget, isPending: widgetCreateLoading } = useMutatio
     },
 });
 const dataTableAddFn = (params: DataTableAddParameters): Promise<DataTableModel> => {
-    if (dashboardDetailState.dashboardId?.startsWith('private')) {
-        return api.privateDataTableAPI.add(params);
+    if (params.widget_id.startsWith('private')) {
+        return dataTableApi.privateDataTableAPI.add(params);
     }
-    return api.publicDataTableAPI.add(params);
+    return dataTableApi.publicDataTableAPI.add(params);
 };
 const { mutateAsync: addDataTable, isPending: dataTableAddLoading } = useMutation({
     mutationFn: dataTableAddFn,
     onSuccess: (data) => {
         const _isPrivate = widgetGenerateState.widgetId?.startsWith('private');
-        const dataTableListQueryKey = _isPrivate ? widgetQueryKeys.privateDataTableListQueryKey : widgetQueryKeys.publicDataTableListQueryKey;
+        const dataTableListQueryKey = _isPrivate ? dataTableKeys.privateDataTableListQueryKey : dataTableKeys.publicDataTableListQueryKey;
         queryClient.setQueryData(dataTableListQueryKey.value, (oldData: ListResponse<DataTableModel>) => (oldData.results?.length ? {
             ...oldData, results: [...oldData.results, data],
         } : {
@@ -268,7 +273,7 @@ const handleCreateUnsavedTransform = async (operator: DataTableOperator) => {
     } as Partial<DataTableModel>;
 
     const _isPrivate = widgetGenerateState.widgetId?.startsWith('private');
-    const dataTableListQueryKey = _isPrivate ? widgetQueryKeys.privateDataTableListQueryKey : widgetQueryKeys.publicDataTableListQueryKey;
+    const dataTableListQueryKey = _isPrivate ? dataTableKeys.privateDataTableListQueryKey : dataTableKeys.publicDataTableListQueryKey;
     await queryClient.setQueryData(dataTableListQueryKey.value, (oldData: ListResponse<DataTableModel>) => (oldData.results?.length ? {
         ...oldData, results: [...oldData.results, unsavedTransformData],
     } : {
@@ -284,10 +289,13 @@ const handleSelectPopperCondition = (condition: DataTableDataType) => {
     state.selectedPopperCondition = condition;
 };
 const handleConfirmDataSource = async () => {
+    if (!dashboardId.value) {
+        throw new Error('dashboardId is undefined');
+    }
     // create widget
     if (widgetGenerateState.overlayType === 'ADD' && !widgetGenerateState.widgetId) {
         await createWidget({
-            dashboard_id: dashboardDetailState.dashboardId as string,
+            dashboard_id: dashboardId.value,
             tags: { created_by: userStore.state.userId },
             widget_type: 'table',
         });
@@ -342,7 +350,7 @@ const handleConfirmDataSource = async () => {
 
         const mergedParams = {
             ...addParameters,
-            vars: dashboard.value?.vars || {},
+            vars: widgetContextState.dashboard?.vars || {},
         };
         if (state.selectedDataSourceDomain === DATA_SOURCE_DOMAIN.COST) {
             mergedParams.options = costOptions;
@@ -374,7 +382,7 @@ watch(() => state.showPopover, (val) => {
                position="right-start"
                hide-close-button
                hide-padding
-               :trigger="POPOVER_TRIGGER.NONE"
+               trigger="none"
     >
         <button :class="{'add-button': true, opened: state.showPopover}"
                 @click="handleClickAddDataSourceButton"
@@ -457,31 +465,33 @@ watch(() => state.showPopover, (val) => {
                             </div>
                         </p-select-card>
 
-                        <p class="data-source-domain-title mt-2">
-                            {{ i18n.t('DASHBOARDS.WIDGET.OVERLAY.STEP_1.INVENTORY') }}
-                        </p>
-                        <p-select-card :class="{'custom-select-card': true, 'selected': state.selectedDataSourceDomain === DATA_SOURCE_DOMAIN.ASSET }"
-                                       :value="DATA_SOURCE_DOMAIN.ASSET"
-                                       @click="handleClickDataSourceDomain(DATA_SOURCE_DOMAIN.ASSET)"
-                        >
-                            <div class="domain-contents">
-                                <p-i v-if="state.selectedDataSourceDomain === DATA_SOURCE_DOMAIN.ASSET"
-                                     class="selected-marker"
-                                     name="ic_checkbox-circle-selected"
-                                     width="1.25rem"
-                                     height="1.25rem"
-                                />
-                                <div class="icon-wrapper">
-                                    <p-i name="ic_data-domain-asset"
+                        <template v-if="visibleContents">
+                            <p class="data-source-domain-title mt-2">
+                                {{ i18n.t('DASHBOARDS.WIDGET.OVERLAY.STEP_1.INVENTORY') }}
+                            </p>
+                            <p-select-card :class="{'custom-select-card': true, 'selected': state.selectedDataSourceDomain === DATA_SOURCE_DOMAIN.ASSET }"
+                                           :value="DATA_SOURCE_DOMAIN.ASSET"
+                                           @click="handleClickDataSourceDomain(DATA_SOURCE_DOMAIN.ASSET)"
+                            >
+                                <div class="domain-contents">
+                                    <p-i v-if="state.selectedDataSourceDomain === DATA_SOURCE_DOMAIN.ASSET"
+                                         class="selected-marker"
+                                         name="ic_checkbox-circle-selected"
                                          width="1.25rem"
                                          height="1.25rem"
                                     />
+                                    <div class="icon-wrapper">
+                                        <p-i name="ic_data-domain-asset"
+                                             width="1.25rem"
+                                             height="1.25rem"
+                                        />
+                                    </div>
+                                    <p class="name">
+                                        {{ i18n.t('DASHBOARDS.WIDGET.OVERLAY.STEP_1.ASSET') }}
+                                    </p>
                                 </div>
-                                <p class="name">
-                                    {{ i18n.t('DASHBOARDS.WIDGET.OVERLAY.STEP_1.ASSET') }}
-                                </p>
-                            </div>
-                        </p-select-card>
+                            </p-select-card>
+                        </template>
                     </div>
                     <template v-if="state.selectedDataSourceDomain">
                         <widget-form-cost-data-source-popper

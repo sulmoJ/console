@@ -9,7 +9,6 @@ import { cloneDeep } from 'lodash';
 import {
     PIconButton, PI, PFieldGroup, PSelectButton, PTextInput, PButton, PTextarea, PButtonModal, PToggleButton, PLink, PFieldTitle,
 } from '@cloudforet/mirinae';
-import { ACTION_ICON } from '@cloudforet/mirinae/src/navigation/link/type';
 import type { MenuItem } from '@cloudforet/mirinae/types/controls/context-menu/type';
 
 import type { PrivateDataTableModel } from '@/api-clients/dashboard/private-data-table/schema/model';
@@ -23,7 +22,7 @@ import WidgetFormDataTableCardTransformFormWrapper
     from '@/common/modules/widgets/_components/WidgetFormDataTableCardTransformFormWrapper.vue';
 import WidgetFormDataTableGlobalVariableViewButton
     from '@/common/modules/widgets/_components/WidgetFormDataTableGlobalVariableViewButton.vue';
-import { useWidgetFormQuery } from '@/common/modules/widgets/_composables/use-widget-form-query';
+import { useWidgetDataTableListQuery } from '@/common/modules/widgets/_composables/use-widget-data-table-list-query';
 import { DATA_TABLE_FIELD_TYPE, DATA_TABLE_OPERATOR } from '@/common/modules/widgets/_constants/data-table-constant';
 import { useWidgetGenerateStore } from '@/common/modules/widgets/_store/widget-generate-store';
 import type { TransformDataTableInfo, TransformDataTableProps } from '@/common/modules/widgets/types/widget-data-table-type';
@@ -53,7 +52,7 @@ const widgetGenerateState = widgetGenerateStore.state;
 /* Query */
 const {
     dataTableList,
-} = useWidgetFormQuery({
+} = useWidgetDataTableListQuery({
     widgetId: computed(() => widgetGenerateState.widgetId),
 });
 
@@ -263,7 +262,7 @@ watch(() => state.invalid, (_invalid) => {
                                 <template #label-extra>
                                     <div class="condition-form-extra justify-between inline-flex">
                                         <p-link href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.query.html"
-                                                :action-icon="ACTION_ICON.EXTERNAL_LINK"
+                                                action-icon="external-link"
                                                 highlight
                                                 class="external-link"
                                         >
@@ -288,7 +287,7 @@ watch(() => state.invalid, (_invalid) => {
                             >
                                 <template #label-extra>
                                     <p-link href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.eval.html"
-                                            :action-icon="ACTION_ICON.EXTERNAL_LINK"
+                                            action-icon="external-link"
                                             highlight
                                             class="external-link"
                                     >

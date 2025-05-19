@@ -1,5 +1,5 @@
 import Vue from 'vue';
-import type { RouteConfig } from 'vue-router';
+import type { NavigationGuardNext, Route, RouteConfig } from 'vue-router';
 import VueRouter from 'vue-router';
 
 import { clone } from 'lodash';
@@ -7,8 +7,8 @@ import { clone } from 'lodash';
 import { LocalStorageAccessor } from '@cloudforet/core-lib/local-storage-accessor';
 import { SpaceConnector } from '@cloudforet/core-lib/space-connector';
 
-import type { TokenGrantParameters } from '@/schema/identity/token/api-verbs/grant';
-import type { GrantScope } from '@/schema/identity/token/type';
+import type { TokenGrantParameters } from '@/api-clients/identity/token/schema/api-verbs/grant';
+import type { GrantScope } from '@/api-clients/identity/token/schema/type';
 
 import { ERROR_ROUTE, ROUTE_SCOPE } from '@/router/constant';
 import {
@@ -22,9 +22,8 @@ import {
 
 import { useAppContextStore } from '@/store/app-context/app-context-store';
 import { useUserWorkspaceStore } from '@/store/app-context/workspace/user-workspace-store';
-import { useErrorStore } from '@/store/error/error-store';
+import type { useAuthorizationStore } from '@/store/authorization/authorization-store';
 import { pinia } from '@/store/pinia';
-import type { useUserStore } from '@/store/user/user-store';
 
 import { getRecentConfig } from '@/lib/helper/router-recent-helper';
 import type { MenuId } from '@/lib/menu/config';
@@ -36,7 +35,7 @@ const CHUNK_LOAD_REFRESH_STORAGE_KEY = 'SpaceRouter/ChunkLoadFailRefreshed';
 const grantAndLoadByCurrentScope = async (
     scope: GrantScope,
     afterGrantedCallback: () => void,
-    userStore: ReturnType<typeof useUserStore>,
+    authorizationStore: ReturnType<typeof useAuthorizationStore>,
     workspaceId?: string,
 ): Promise<{ failStatus: boolean }> => {
     const refreshToken = SpaceConnector.getRefreshToken();
@@ -46,20 +45,22 @@ const grantAndLoadByCurrentScope = async (
         workspace_id: workspaceId,
     };
 
-    const errorStore = useErrorStore(pinia);
-    const isGranted: boolean = await userStore.grantRole(grantRequest);
+    const isGranted: boolean = await authorizationStore.grantRole(grantRequest);
     if (isGranted) {
         afterGrantedCallback();
     }
-    const grantAccessFailStatus = errorStore.state.grantAccessFailStatus;
     return {
-        failStatus: !!grantAccessFailStatus,
+        failStatus: !!authorizationStore.state.grantAccessFailStatus,
     };
 };
 export class SpaceRouter {
     static router: VueRouter;
 
-    static init(routes: RouteConfig[], afterGrantedCallback: () => void, userStore: ReturnType<typeof useUserStore>) {
+    static init(
+        routes: RouteConfig[],
+        afterGrantedCallback: () => void,
+        authorizationStore: ReturnType<typeof useAuthorizationStore>,
+    ) {
         if (SpaceRouter.router) throw new Error('Router init failed: Already initiated.');
 
         Vue.use(VueRouter);
@@ -93,6 +94,11 @@ export class SpaceRouter {
         });
 
         SpaceRouter.router.beforeEach(async (to, from, next) => {
+            /* Redirection to proper route */
+            const currentWorkspaceId = userWorkspaceStore.getters.currentWorkspaceId;
+            const redirected = SpaceRouter.handleWorkspaceRouteRedirection(to, currentWorkspaceId, next);
+            if (redirected) return;
+
             const { rol: prevRole, wid: prevWorkspaceId } = getDecodedDataFromAccessToken();
             const routeScope = getRouteScope(to);
 
@@ -111,7 +117,7 @@ export class SpaceRouter {
 
             /* Grant Scope Process */
             if (routeScope !== ROUTE_SCOPE.EXCLUDE_AUTH && shouldUpdateScope(prevRole, routeScope, prevWorkspaceId, to.params.workspaceId)) {
-                const { failStatus } = await grantAndLoadByCurrentScope(routeScope, afterGrantedCallback, userStore, to.params.workspaceId);
+                const { failStatus } = await grantAndLoadByCurrentScope(routeScope, afterGrantedCallback, authorizationStore, to.params.workspaceId);
 
                 if (failStatus) { // Grant fail
                     await userWorkspaceStore.load();
@@ -120,7 +126,7 @@ export class SpaceRouter {
                         params: { statusCode: '404' },
                     });
                 } else if (routeScope === ROUTE_SCOPE.WORKSPACE) { // Grant success - Workspace
-                    verifyPageAccessAndRedirect(to, next, to.params.workspaceId, userStore.getters.pageAccessPermissionList);
+                    verifyPageAccessAndRedirect(to, next, to.params.workspaceId, authorizationStore.getters.pageAccessPermissionList);
                 } else next(); // Grant success - Others (Admin, User)
             } else { // Grant Process Not Needed
                 appContextStore.setGlobalGrantLoading(false);
@@ -135,7 +141,7 @@ export class SpaceRouter {
             // set target page as GTag page view
             if (GTag.gtag) GTag.setPageView(to);
             const isAdminMode = appContextStore.getters.isAdminMode;
-            const pageAccessPermissionMap = userStore.getters.pageAccessPermissionMap;
+            const pageAccessPermissionMap = authorizationStore.getters.pageAccessPermissionMap;
             const routeScope = getRouteScope(to);
 
             if (!isAdminMode && routeScope === 'WORKSPACE') {
@@ -168,5 +174,25 @@ export class SpaceRouter {
         });
 
         return SpaceRouter.router;
+    }
+
+
+    static handleWorkspaceRouteRedirection(to: Route, currentWorkspaceId: string|undefined, next: NavigationGuardNext): boolean {
+        const targetRouteScope = getRouteScope(to);
+        const needsWorkspaceId = targetRouteScope === ROUTE_SCOPE.WORKSPACE && !to.params.workspaceId && currentWorkspaceId;
+
+        if (to.name && needsWorkspaceId) {
+            next({
+                ...to,
+                name: to.name,
+                params: {
+                    ...to.params,
+                    workspaceId: currentWorkspaceId,
+                },
+            });
+            return true;
+        }
+
+        return false;
     }
 }

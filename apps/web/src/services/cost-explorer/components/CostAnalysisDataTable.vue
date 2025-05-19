@@ -26,10 +26,12 @@ import type { DataTableFieldType } from '@cloudforet/mirinae/types/data-display/
 import type { MenuItem } from '@cloudforet/mirinae/types/inputs/context-menu/type';
 import { numberFormatter } from '@cloudforet/utils';
 
-
 import type { AnalyzeResponse } from '@/api-clients/_common/schema/api-verbs/analyze';
 
+import { useReferenceRouter } from '@/router/composables/use-reference-router';
+
 import { useAppContextStore } from '@/store/app-context/app-context-store';
+import { useUserWorkspaceStore } from '@/store/app-context/workspace/user-workspace-store';
 import { useAllReferenceStore } from '@/store/reference/all-reference-store';
 import type { ProjectGroupReferenceMap } from '@/store/reference/project-group-reference-store';
 import type { ProjectReferenceMap } from '@/store/reference/project-reference-store';
@@ -44,9 +46,7 @@ import type { ExcelDataField } from '@/lib/helper/file-download-helper/type';
 import { usageUnitFormatter } from '@/lib/helper/usage-formatter';
 
 import ErrorHandler from '@/common/composables/error/errorHandler';
-import { useProperRouteLocation } from '@/common/composables/proper-route-location';
 
-import { ASSET_INVENTORY_ROUTE_V1 } from '@/services/asset-inventory-v1/routes/route-constant';
 import {
     GRANULARITY,
     GROUP_BY,
@@ -64,8 +64,8 @@ import type {
     Period,
     DisplayDataType,
 } from '@/services/cost-explorer/types/cost-explorer-query-type';
-import { PROJECT_ROUTE } from '@/services/project-v1/routes/route-constant';
-
+import { PROJECT_ROUTE_V2 } from '@/services/project/v2/routes/route-constant';
+import { SERVICE_ACCOUNT_ROUTE } from '@/services/service-account/routes/route-constant';
 
 type CostAnalyzeRawData = {
   [groupBy: string]: string | any;
@@ -78,13 +78,14 @@ type CostAnalyzeRawData = {
 };
 
 const appContextStore = useAppContextStore();
+const userWorkspaceStore = useUserWorkspaceStore();
 const allReferenceStore = useAllReferenceStore();
 const costAnalysisPageStore = useCostAnalysisPageStore();
 const costAnalysisPageGetters = costAnalysisPageStore.getters;
 const costAnalysisPageState = costAnalysisPageStore.state;
 const router = useRouter();
-const { getProperRouteLocation } = useProperRouteLocation();
 
+const { getReferenceLocation } = useReferenceRouter();
 
 const getValueSumKey = (dataType: string) => {
     switch (dataType) {
@@ -101,6 +102,7 @@ const getValueSumKey = (dataType: string) => {
 
 const storeState = reactive({
     isAdminMode: computed(() => appContextStore.getters.isAdminMode),
+    currentWorkspaceId: computed<string|undefined>(() => userWorkspaceStore.getters.currentWorkspaceId),
     projects: computed<ProjectReferenceMap>(
         () => allReferenceStore.getters.project,
     ),
@@ -405,21 +407,23 @@ const handleClickRowData = (fieldName: string, value: string) => {
     let _routeName: string;
     let _params = {};
 
+    if (storeState.isAdminMode) return;
     if (fieldName === GROUP_BY.PROJECT) {
-        _routeName = PROJECT_ROUTE.DETAIL._NAME;
-        _params = { id: value };
+        const { name, params } = getReferenceLocation(value, { resource_type: 'identity.Project' });
+        _routeName = name || PROJECT_ROUTE_V2._NAME;
+        _params = params || {};
     }
     if (fieldName === GROUP_BY.SERVICE_ACCOUNT) {
-        _routeName = ASSET_INVENTORY_ROUTE_V1.SERVICE_ACCOUNT.DETAIL._NAME;
-        _params = { serviceAccountId: value };
+        _routeName = SERVICE_ACCOUNT_ROUTE.DETAIL._NAME;
+        _params = { serviceAccountId: value, workspaceId: storeState.currentWorkspaceId };
     }
 
     if (!_routeName) return;
 
-    window.open(router.resolve(getProperRouteLocation({
+    window.open(router.resolve({
         name: _routeName,
         params: _params,
-    })).href, '_blank');
+    }).href, '_blank');
 };
 const handleChange = async (options: any = {}) => {
     setApiQueryWithToolboxOptions(analyzeApiQueryHelper, options, {
@@ -641,14 +645,14 @@ watch(
             >
                 <span v-if="colIndex === 0">Total</span>
                 <span v-else-if="tableState.showFormattedData && field.name !== 'usage_unit'
-                    && (!state.visibleGroupByItems.map(item => lowerCase(item.name)).includes(lowerCase(field.name))
-                        && !state.visibleGroupByItems.map(item => lowerCase(item.label)).includes(lowerCase(field.name)))"
+                    && (!tableState.groupByFields.map(item => lowerCase(item.name)).includes(lowerCase(field.name)))
+                    && (!tableState.groupByFields.map(item => lowerCase(item.label)).includes(lowerCase(field.name)))"
                 >
                     {{ Array.isArray(values) && values.length > 0 ? numberFormatter(reduce(values), {notation: 'compact'}) : 0 }}
                 </span>
                 <span v-else-if="!tableState.showFormattedData && field.name !== 'usage_unit'
-                    && (!state.visibleGroupByItems.map(item => lowerCase(item.name)).includes(lowerCase(field.name))
-                        && !state.visibleGroupByItems.map(item => lowerCase(item.label)).includes(lowerCase(field.name)))"
+                    && (!tableState.groupByFields.map(item => lowerCase(item.name)).includes(lowerCase(field.name))
+                        && !tableState.groupByFields.map(item => lowerCase(item.label)).includes(lowerCase(field.name)))"
                 >
                     {{ Array.isArray(values) && values.length > 0 ? numberFormatter(reduce(values), {minimumFractionDigits: 2}) : 0 }}
                 </span>

@@ -89,7 +89,13 @@ export class SpaceConnector {
         }
     }
 
-    static async init(endpoints: string[], tokenApi: TokenAPI, apiSettings: CreateAxiosDefaults[] = [], devConfig: DevConfig = {}, afterCallApiMap: AfterCallApiMap = {}): Promise<void> {
+    static async init(
+        endpoints: string[],
+        tokenApi: TokenAPI,
+        apiSettings: CreateAxiosDefaults[] = [],
+        devConfig: DevConfig = {},
+        afterCallApiMap: AfterCallApiMap = {},
+    ): Promise<void> {
         if (!SpaceConnector.instance) {
             SpaceConnector.instance = new SpaceConnector(endpoints, tokenApi, apiSettings, devConfig, afterCallApiMap);
             await Promise.allSettled([
@@ -138,6 +144,15 @@ export class SpaceConnector {
     static flushToken(): void {
         SpaceConnector.instance.clearApiTokenCheckInterval();
         SpaceConnector.instance.tokenApi.flushToken();
+    }
+
+    static setServiceConfig(serviceConfig: Record<string, any>): void {
+        if (SpaceConnector.instance) {
+            SpaceConnector.instance.serviceApi.updateServiceConfig(serviceConfig);
+            SpaceConnector.instance.serviceApiV2.updateServiceConfig(serviceConfig);
+        } else {
+            throw new Error('Not initialized client!');
+        }
     }
 
     static async refreshAccessToken(executeSessionTimeoutCallback: boolean): Promise<boolean|undefined> {

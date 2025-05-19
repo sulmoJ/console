@@ -7,14 +7,14 @@ import type { TranslateResult } from 'vue-i18n';
 import {
     PFieldGroup, PI, PTextInput, PTooltip, PSelectDropdown,
 } from '@cloudforet/mirinae';
-import type { SelectDropdownMenuItem } from '@cloudforet/mirinae/src/controls/dropdown/select-dropdown/type';
 import type { MenuItem } from '@cloudforet/mirinae/types/controls/context-menu/type';
+import type { SelectDropdownMenuItem } from '@cloudforet/mirinae/types/controls/dropdown/select-dropdown/type';
 
 import { i18n } from '@/translations';
 
 import { showErrorMessage } from '@/lib/helper/notice-alert-helper';
 
-import { useWidgetFormQuery } from '@/common/modules/widgets/_composables/use-widget-form-query';
+import { useWidgetDataTableListQuery } from '@/common/modules/widgets/_composables/use-widget-data-table-list-query';
 import { sortWidgetTableFields } from '@/common/modules/widgets/_helpers/widget-helper';
 import { useWidgetGenerateStore } from '@/common/modules/widgets/_store/widget-generate-store';
 import {
@@ -41,7 +41,7 @@ const widgetGenerateState = widgetGenerateStore.state;
 /* Query */
 const {
     dataTableList,
-} = useWidgetFormQuery({
+} = useWidgetDataTableListQuery({
     widgetId: computed(() => widgetGenerateState.widgetId),
 });
 

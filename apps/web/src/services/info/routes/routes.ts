@@ -1,8 +1,5 @@
 import type { RouteConfig } from 'vue-router';
 
-import { pinia } from '@/store/pinia';
-import { useUserStore } from '@/store/user/user-store';
-
 import { getRedirectRouteByPagePermission } from '@/lib/access-control/redirect-route-helper';
 import { MENU_ID } from '@/lib/menu/config';
 import { MENU_INFO_MAP } from '@/lib/menu/menu-info';
@@ -15,17 +12,14 @@ const NoticeMainPage = () => import('@/services/info/pages/NoticeMainPage.vue');
 const NoticeDetailPage = () => import('@/services/info/pages/NoticeDetailPage.vue');
 
 
-const infoRoute: RouteConfig = {
+const infoRoutes: RouteConfig = {
     path: 'info',
     name: INFO_ROUTE._NAME,
     meta: {
         menuId: MENU_ID.INFO,
         translationId: MENU_INFO_MAP[MENU_ID.INFO].translationId,
     },
-    redirect: (to) => {
-        const userStore = useUserStore(pinia);
-        return getRedirectRouteByPagePermission(to, userStore.getters.pageAccessPermissionMap, userStore.getters.domainId);
-    },
+    redirect: (to) => getRedirectRouteByPagePermission(to),
     component: InfoContainer,
     children: [
         {
@@ -55,4 +49,4 @@ const infoRoute: RouteConfig = {
     ],
 };
 
-export default infoRoute;
+export default infoRoutes;

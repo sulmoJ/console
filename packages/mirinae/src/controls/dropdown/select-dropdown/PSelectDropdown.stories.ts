@@ -1,9 +1,10 @@
-import { reactive, toRefs } from 'vue';
+import { reactive, toRefs, ref } from 'vue';
 
 import type { Meta, StoryObj } from '@storybook/vue';
 import type { ComponentProps } from 'vue-component-type-helpers';
 
 import PButton from '@/controls/buttons/button/PButton.vue';
+import PIconButton from '@/controls/buttons/icon-button/PIconButton.vue';
 import PToggleButton from '@/controls/buttons/toggle-button/PToggleButton.vue';
 import PCodeEditor from '@/controls/code-editor/PCodeEditor.vue';
 import { menuItems } from '@/controls/context-menu/mock';
@@ -611,6 +612,46 @@ export const ButtonIconType: Story = {
     })],
 };
 
+export const CustomIconButton: Story = {
+    render: () => ({
+        components: {
+            PSelectDropdown,
+            PIconButton,
+        },
+        template: `
+            <div class="h-full w-full overflow p-8">
+                <p-select-dropdown :menu="menuItems"
+                                 reset-selection-on-menu-close
+                                 menu-width="max-content"
+                                 @update:visible-menu="handleUpdateVisible"
+                >
+                    <template #dropdown-icon-button>
+                        <p-icon-button name="ic_ellipsis-horizontal"
+                                     :activated="visibleMenu"
+                                     size="sm"
+                                     style-type="tertiary"
+                        />
+                    </template>
+                </p-select-dropdown>
+            </div>
+        `,
+        setup() {
+            const visibleMenu = ref(false);
+            const handleUpdateVisible = (v) => {
+                visibleMenu.value = v;
+            };
+            return {
+                menuItems,
+                visibleMenu,
+                handleUpdateVisible,
+            };
+        },
+    }),
+    decorators: [() => ({
+        template: '<story style="height: 300px" />',
+    })],
+};
+
 export const IsFixedWidth: Story = {
     render: () => ({
         components: { PSelectDropdown },
@@ -722,19 +763,19 @@ export const UsingCustomHandlerAndLoading: Story = {
         setup() {
             const state = reactive({
                 loading: false,
-                selected: [],
+                selected: [] as any[],
                 isReady: false,
             });
             const simpleHandler = getHandler();
-            const menuHandler = async (...args) => {
+            const menuHandler = async (inputText: string, pageStart?: number, pageLimit?: number, filters?: any[], resultRef?: number) => {
                 state.loading = true;
-                const res = await simpleHandler(...args);
+                const res = await simpleHandler(inputText, pageStart, pageLimit, filters, resultRef);
                 state.loading = false;
                 return res;
             };
             (async () => {
                 const res = await simpleHandler('', 0, 2);
-                state.selected = res[0].results.map((d) => ({ name: d.name }));
+                state.selected = res[0].results.map((d: any) => ({ name: d.name }));
                 state.isReady = true;
             })();
             return {

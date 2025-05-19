@@ -7,14 +7,15 @@ import { SpaceConnector } from '@cloudforet/core-lib/space-connector';
 import { ApiQueryHelper } from '@cloudforet/core-lib/space-connector/helper';
 
 import type { ListResponse } from '@/api-clients/_common/schema/api-verbs/list';
+import type { UserConfigListParameters } from '@/api-clients/config/user-config/schema/api-verbs/list';
+import type { UserConfigModel } from '@/api-clients/config/user-config/schema/model';
 import type { PostListParameters } from '@/schema/board/post/api-verbs/list';
 import { POST_BOARD_TYPE } from '@/schema/board/post/constant';
 import type { PostModel } from '@/schema/board/post/model';
 import type { NoticeConfigData } from '@/schema/board/post/type';
-import type { UserConfigListParameters } from '@/schema/config/user-config/api-verbs/list';
-import type { UserConfigModel } from '@/schema/config/user-config/model';
 
 import { useAppContextStore } from '@/store/app-context/app-context-store';
+import { useAuthorizationStore } from '@/store/authorization/authorization-store';
 import { useUserStore } from '@/store/user/user-store';
 
 import ErrorHandler from '@/common/composables/error/errorHandler';
@@ -22,9 +23,10 @@ import NoticePopupItem from '@/common/modules/popup/notice/modules/NoticePopupIt
 
 const appContextStore = useAppContextStore();
 const userStore = useUserStore();
+const authorizationStore = useAuthorizationStore();
 const state = reactive({
     isSessionExpired: computed<boolean>(() => !!userStore.state.isSessionExpired),
-    isNoRoleUser: computed<boolean>(() => userStore.getters.isNoRoleUser),
+    isNoRoleUser: computed<boolean>(() => authorizationStore.getters.isNoRoleUser),
     popupList: [] as PostModel[],
     hasLoaded: false,
 });
@@ -79,7 +81,7 @@ watch([
     () => state.isSessionExpired,
     () => state.isNoRoleUser,
     () => appContextStore.getters.globalGrantLoading,
-    () => userStore.state.currentGrantInfo,
+    () => authorizationStore.state.currentGrantInfo,
 ], async ([hasLoaded, isSessionExpired, isNoRoleUser, globalGrantLoading, grantInfo]) => {
     if (hasLoaded) return;
     if (isNoRoleUser || isSessionExpired) {

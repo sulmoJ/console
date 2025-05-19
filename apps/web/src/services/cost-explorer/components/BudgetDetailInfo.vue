@@ -7,18 +7,17 @@ import type { Location } from 'vue-router/types/router';
 import {
     PPaneLayout, PLink, PI, PTextButton, PPopover,
 } from '@cloudforet/mirinae';
-import { ACTION_ICON } from '@cloudforet/mirinae/src/navigation/link/type';
+
 
 import type { BudgetModel } from '@/api-clients/cost-analysis/budget/schema/model';
 
+import { useReferenceRouter } from '@/router/composables/use-reference-router';
+
+import { useUserWorkspaceStore } from '@/store/app-context/workspace/user-workspace-store';
 import { useAllReferenceStore } from '@/store/reference/all-reference-store';
 import type { ProjectReferenceMap } from '@/store/reference/project-reference-store';
 import type { ProviderReferenceMap } from '@/store/reference/provider-reference-store';
 import type { WorkspaceReferenceMap } from '@/store/reference/workspace-reference-store';
-
-import { referenceRouter } from '@/lib/reference/referenceRouter';
-
-import { useProperRouteLocation } from '@/common/composables/proper-route-location';
 
 import { gray } from '@/styles/colors';
 
@@ -29,10 +28,11 @@ import { useBudgetDetailPageStore } from '@/services/cost-explorer/stores/budget
 const changeToLabelList = (providerList: string[]): string => providerList.map((provider) => storeState.providers[provider]?.label ?? '').join(', ') || 'All';
 
 const allReferenceStore = useAllReferenceStore();
-const { getProperRouteLocation } = useProperRouteLocation();
-
+const userWorkspaceStore = useUserWorkspaceStore();
 const budgetPageStore = useBudgetDetailPageStore();
 const budgetPageState = budgetPageStore.$state;
+
+const { getReferenceLocation } = useReferenceRouter();
 
 const costTypeWrapperRef = ref<HTMLElement|null>(null);
 const costTypeRef = ref<HTMLElement|null>(null);
@@ -66,9 +66,12 @@ const state = reactive({
     }),
     targetLocation: computed<Location|undefined>(() => {
         if (state.isProjectTarget) {
-            return referenceRouter(
+            return getReferenceLocation(
                 state.budgetData?.project_id,
-                { resource_type: 'identity.Project' },
+                {
+                    resource_type: 'identity.Project',
+                    workspace_id: userWorkspaceStore.getters.currentWorkspaceId,
+                },
             );
         }
         // HACK: This is a temporary solution. It should be changed to the proper route.
@@ -139,10 +142,10 @@ watch(() => costTypeRef.value, (costType) => {
                     />
                 </span>
                 <p-link v-if="state.targetLocation"
-                        :action-icon="ACTION_ICON.INTERNAL_LINK"
+                        action-icon="internal-link"
                         new-tab
                         highlight
-                        :to="getProperRouteLocation(state.targetLocation)"
+                        :to="state.targetLocation"
                 >
                     {{ state.targetLabel.name }}
                 </p-link>

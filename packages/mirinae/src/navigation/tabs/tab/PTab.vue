@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {
-    computed, nextTick, reactive, ref,
+    computed, nextTick, reactive, ref, watch,
 } from 'vue';
 
 import { onClickOutside, useResizeObserver } from '@vueuse/core';
@@ -48,10 +48,10 @@ const state = reactive({
         if (!props.tabs.length) return undefined;
         if (typeof props.tabs[0] === 'string') return undefined;
         const flattenTabs = props.tabs.reduce((acc, tab) => {
-            if (tab?.tabType === 'folder') {
-                acc.push(...(tab?.subItems ?? []));
+            if (typeof tab !== 'string' && tab?.tabType === 'folder') {
+                acc.push(...((tab as TabItem)?.subItems as TabItem[] ?? []));
             } else {
-                acc.push(tab);
+                acc.push(tab as TabItem);
             }
             return acc;
         }, [] as TabItem[]);
@@ -97,9 +97,11 @@ const handleSelectGroupTab = (tab: TabItem) => {
         state.selectedFolderTab = tab.name;
     }
 };
-const handleSelectGroupTabMenu = (tab: TabItem, idx: number) => {
-    selectTab(tab, idx);
-    hideGroupTab();
+const handleSelectGroupTabMenu = (item: MenuItem, idx?: number) => {
+    if (idx !== undefined) {
+        selectTab(item as unknown as TabItem, idx);
+        hideGroupTab();
+    }
 };
 const handleClickHiddenTabsMenu = () => {
     state.selectedHiddenParentTab = undefined;
@@ -147,7 +149,7 @@ const calculateWidths = () => {
 
     while (i < tabItemsRef.value.length && totalWidth <= ulWidth) {
         const item = tabItemsRef.value[i];
-        const itemWidth = item.clientWidth || (item.$el.clientWidth + 16) || 0;
+        const itemWidth = item.clientWidth || ((item as typeof PDivider).$el.clientWidth + 16) || 0;
 
         totalWidth += itemWidth;
         lastValidTotalWidth += itemWidth;
@@ -170,12 +172,22 @@ const calculateWidths = () => {
     state.hiddenTabItems = hiddenTabs.filter((tab) => tab.tabType !== 'divider');
     state.firstRenderDone = true; // This is to prevent the tabs from being hidden on the first render
 };
+
+// Calculate the widths of the tabs when tab size is changed
 useResizeObserver(tabContainerRef, throttle(() => {
     state.firstRenderDone = false;
     nextTick(() => {
         calculateWidths();
     });
 }, 500));
+
+// Calculate the widths of the tabs when the tabs are updated
+watch(() => props.tabs, () => {
+    state.firstRenderDone = false;
+    nextTick(() => {
+        calculateWidths();
+    });
+});
 
 onClickOutside(hiddenTabsMenuRef, hideHiddenTabs);
 
@@ -217,6 +229,13 @@ onClickOutside(hiddenTabsMenuRef, hideHiddenTabs);
                         @click="handleSelectTab(tab, idx)"
                     >
                         <div class="content-wrapper">
+                            <p-i v-if="tab.icon"
+                                 class="tab-icon"
+                                 :name="tab.icon"
+                                 color="inherit"
+                                 width="0.875rem"
+                                 height="0.875rem"
+                            />
                             <span class="label">
                                 {{ tab.label }}
                             </span>
@@ -280,7 +299,7 @@ onClickOutside(hiddenTabsMenuRef, hideHiddenTabs);
             </div>
         </div>
         <div class="tab-pane">
-            <slot />
+            <slot v-bind="currentTabItem" />
             <keep-alive>
                 <slot v-if="keepAliveTabNames.includes(activeTab)"
                       :name="activeTab"
@@ -319,7 +338,7 @@ onClickOutside(hiddenTabsMenuRef, hideHiddenTabs);
         width: 100%;
         flex: 1;
         li {
-            @apply relative text-gray-400 cursor-pointer;
+            @apply relative text-gray-600 cursor-pointer;
             height: 2.5rem;
             min-height: 2.5rem;
             max-width: 10rem;
@@ -341,6 +360,10 @@ onClickOutside(hiddenTabsMenuRef, hideHiddenTabs);
             }
             .content-wrapper {
                 @apply flex items-center justify-center w-full h-full;
+                .tab-icon {
+                    min-width: 0.875rem;
+                    margin-right: 0.25rem;
+                }
                 .label {
                     @apply w-full text-label-md block truncate;
                 }

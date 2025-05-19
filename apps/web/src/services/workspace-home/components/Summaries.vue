@@ -1,13 +1,21 @@
 <script setup lang="ts">
-import AccountSummary from '@/services/workspace-home/components/AccountSummary.vue';
-import AssetSummary from '@/services/workspace-home/components/AssetSummary.vue';
-import CostSummary from '@/services/workspace-home/components/CostSummary.vue';
+import { MENU_ID } from '@/lib/menu/config';
+
+import { useContentsAccessibility } from '@/common/composables/contents-accessibility';
+
+import AccountSummary from '@/services/workspace-home/shared/components/AccountSummary.vue';
+import AssetSummary from '@/services/workspace-home/shared/components/AssetSummary.vue';
+import CostSummary from '@/services/workspace-home/shared/components/CostSummary.vue';
+
+const { visibleContents } = useContentsAccessibility(MENU_ID.ASSET_INVENTORY);
 </script>
 
 <template>
     <div class="summaries-wrapper">
         <div class="summaries">
-            <asset-summary class="box-wrapper" />
+            <asset-summary v-if="visibleContents"
+                           class="box-wrapper"
+            />
             <account-summary class="box-wrapper" />
         </div>
         <cost-summary class="box-wrapper cost" />
@@ -27,7 +35,6 @@ import CostSummary from '@/services/workspace-home/components/CostSummary.vue';
         @apply bg-white border border-gray-200 text-label-md;
         width: calc(50% - 0.5rem);
         max-width: 43rem;
-        padding-top: 1.375rem;
         border-radius: 0.375rem;
         flex: 1;
         &.cost {

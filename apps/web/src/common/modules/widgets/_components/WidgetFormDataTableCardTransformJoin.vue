@@ -8,12 +8,12 @@ import { random } from 'lodash';
 import {
     PFieldGroup, PI, PSelectDropdown, PFieldTitle, PButton, PIconButton,
 } from '@cloudforet/mirinae';
-import type { SelectDropdownMenuItem } from '@cloudforet/mirinae/src/controls/dropdown/select-dropdown/type';
+import type { SelectDropdownMenuItem } from '@cloudforet/mirinae/types/controls/dropdown/select-dropdown/type';
 
 import { useProxyValue } from '@/common/composables/proxy-state';
 import WidgetFormDataTableCardTransformFormWrapper
     from '@/common/modules/widgets/_components/WidgetFormDataTableCardTransformFormWrapper.vue';
-import { useWidgetFormQuery } from '@/common/modules/widgets/_composables/use-widget-form-query';
+import { useWidgetDataTableListQuery } from '@/common/modules/widgets/_composables/use-widget-data-table-list-query';
 import {
     DATA_TABLE_OPERATOR, JOIN_TYPE,
 } from '@/common/modules/widgets/_constants/data-table-constant';
@@ -47,7 +47,7 @@ const widgetGenerateState = widgetGenerateStore.state;
 /* Query */
 const {
     dataTableList,
-} = useWidgetFormQuery({
+} = useWidgetDataTableListQuery({
     widgetId: computed(() => widgetGenerateState.widgetId),
 });
 

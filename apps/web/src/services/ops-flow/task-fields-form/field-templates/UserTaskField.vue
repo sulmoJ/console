@@ -3,7 +3,6 @@ import {
     PFieldGroup,
 } from '@cloudforet/mirinae';
 
-
 import type { OtherTaskField } from '@/api-clients/opsflow/_types/task-field-type';
 
 import UserSelectDropdown from '@/common/modules/user/UserSelectDropdown.vue';

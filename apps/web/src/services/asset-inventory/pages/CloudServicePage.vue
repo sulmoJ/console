@@ -23,14 +23,13 @@ import { SpaceRouter } from '@/router';
 import type { CloudServiceAnalyzeParameters } from '@/schema/inventory/cloud-service/api-verbs/analyze';
 import { i18n } from '@/translations';
 
+import { useAuthorizationStore } from '@/store/authorization/authorization-store';
 import { useAllReferenceStore } from '@/store/reference/all-reference-store';
 import type { CollectorReferenceMap } from '@/store/reference/collector-reference-store';
 import type { ProjectGroupReferenceMap } from '@/store/reference/project-group-reference-store';
 import type { ProviderReferenceMap } from '@/store/reference/provider-reference-store';
 import type { ServiceAccountReferenceMap } from '@/store/reference/service-account-reference-store';
-import { useUserStore } from '@/store/user/user-store';
 
-import type { PageAccessMap } from '@/lib/access-control/config';
 import { MENU_ID } from '@/lib/menu/config';
 import {
     arrayToQueryString,
@@ -58,6 +57,7 @@ import type {
     CloudServiceMainPageUrlQueryValue,
 } from '@/services/asset-inventory/types/cloud-service-page-type';
 import type { EmptyData, Period } from '@/services/asset-inventory/types/type';
+import { SERVICE_ACCOUNT_ROUTE } from '@/services/service-account/routes/route-constant';
 
 interface Response {
     results: CloudServiceAnalyzeResult[];
@@ -68,7 +68,7 @@ const allReferenceStore = useAllReferenceStore();
 const cloudServicePageStore = useCloudServicePageStore();
 const cloudServicePageState = cloudServicePageStore.$state;
 const cloudServiceLSBStore = useCloudServiceLSBStore();
-const userStore = useUserStore();
+const authorizationStore = useAuthorizationStore();
 
 const storeState = reactive({
     projects: computed(() => allReferenceStore.getters.project),
@@ -76,7 +76,6 @@ const storeState = reactive({
     serviceAccounts: computed<ServiceAccountReferenceMap>(() => allReferenceStore.getters.serviceAccount),
     providers: computed<ProviderReferenceMap>(() => allReferenceStore.getters.provider),
     collectors: computed<CollectorReferenceMap>(() => allReferenceStore.getters.collector),
-    pageAccessPermissionMap: computed<PageAccessMap>(() => userStore.getters.pageAccessPermissionMap),
 });
 const handlerState = reactive({
     keyItemSets: computed<KeyItemSet[]>(() => [{
@@ -127,9 +126,9 @@ const state = reactive({
     isNoServiceAccounts: computed(() => !Object.keys(storeState.serviceAccounts).length),
     emptyData: computed<EmptyData>(() => {
         let result = {} as EmptyData;
-        if (!Object.keys(storeState.serviceAccounts).length) {
+        if (state.isNoServiceAccounts) {
             result = {
-                to: state.writableServiceAccount ? { name: ASSET_INVENTORY_ROUTE.SERVICE_ACCOUNT._NAME } : {},
+                to: state.writableServiceAccount ? { name: SERVICE_ACCOUNT_ROUTE._NAME } : {},
                 buttonText: state.writableServiceAccount ? i18n.t('INVENTORY.ADD_SERVICE_ACCOUNT') : undefined,
                 desc: i18n.t('INVENTORY.EMPTY_CLOUD_SERVICE'),
             };
@@ -149,8 +148,8 @@ const state = reactive({
         }
         return result;
     }),
-    writableServiceAccount: computed<boolean|undefined>(() => storeState.pageAccessPermissionMap[MENU_ID.SERVICE_ACCOUNT].write),
-    writableCollector: computed<boolean|undefined>(() => storeState.pageAccessPermissionMap[MENU_ID.COLLECTOR].write),
+    writableServiceAccount: computed<boolean|undefined>(() => authorizationStore.getters.pageAccessPermissionMap[MENU_ID.SERVICE_ACCOUNT]?.write),
+    writableCollector: computed<boolean|undefined>(() => authorizationStore.getters.pageAccessPermissionMap[MENU_ID.COLLECTOR]?.write),
 });
 
 /* api */
@@ -255,8 +254,7 @@ onUnmounted(() => {
                                @refresh="handleRefresh"
         />
 
-        <p-data-loader v-if="Object.keys(storeState.serviceAccounts).length && Object.keys(storeState.collectors).length"
-                       class="flex-grow"
+        <p-data-loader class="flex-grow"
                        :data="state.items"
                        :loading="state.loading"
                        :loader-backdrop-color="BACKGROUND_COLOR"
@@ -267,37 +265,38 @@ onUnmounted(() => {
                                          :item="item"
                 />
             </div>
+            <template #no-data>
+                <p-empty
+                    show-image
+                    image-size="md"
+                    :show-button="!!state.emptyData.to?.name"
+                >
+                    <template #image>
+                        <img v-if="state.isNoServiceAccounts"
+                             alt="empty-cloud-service-img"
+                             src="@/assets/images/illust_satellite.svg"
+                        >
+                        <img v-else
+                             alt="empty-cloud-service-img"
+                             src="@/assets/images/illust_microscope.svg"
+                        >
+                    </template>
+                    <template #button>
+                        <router-link
+                            :to="state.emptyData.to"
+                        >
+                            <p-button style-type="substitutive"
+                                      icon-left="ic_plus_bold"
+                                      class="mx-auto text-center"
+                            >
+                                {{ state.emptyData?.buttonText }}
+                            </p-button>
+                        </router-link>
+                    </template>
+                    {{ state.emptyData.desc }}
+                </p-empty>
+            </template>
         </p-data-loader>
-        <p-empty
-            v-else
-            show-image
-            image-size="md"
-            :show-button="!!state.emptyData.to?.name"
-        >
-            <template #image>
-                <img v-if="state.isNoServiceAccounts"
-                     alt="empty-cloud-service-img"
-                     src="@/assets/images/illust_satellite.svg"
-                >
-                <img v-else
-                     alt="empty-cloud-service-img"
-                     src="@/assets/images/illust_microscope.svg"
-                >
-            </template>
-            <template #button>
-                <router-link
-                    :to="state.emptyData.to"
-                >
-                    <p-button style-type="substitutive"
-                              icon-left="ic_plus_bold"
-                              class="mx-auto text-center"
-                    >
-                        {{ state.emptyData?.buttonText }}
-                    </p-button>
-                </router-link>
-            </template>
-            {{ state.emptyData.desc }}
-        </p-empty>
     </div>
 </template>
 

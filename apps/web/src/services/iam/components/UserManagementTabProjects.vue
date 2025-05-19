@@ -8,19 +8,19 @@ import {
 import type { DataTableFieldType } from '@cloudforet/mirinae/types/data-display/tables/data-table/type';
 
 import type { ListResponse } from '@/api-clients/_common/schema/api-verbs/list';
-import type { ProjectListParameters } from '@/schema/identity/project/api-verbs/list';
-import type { ProjectRemoveUsersParameters } from '@/schema/identity/project/api-verbs/remove-users';
-import type { ProjectModel } from '@/schema/identity/project/model';
+import type { ProjectListParameters } from '@/api-clients/identity/project/schema/api-verbs/list';
+import type { ProjectRemoveUsersParameters } from '@/api-clients/identity/project/schema/api-verbs/remove-users';
+import type { ProjectModel } from '@/api-clients/identity/project/schema/model';
 import { i18n } from '@/translations';
+
+import { useReferenceRouter } from '@/router/composables/use-reference-router';
 
 import { showErrorMessage, showSuccessMessage } from '@/lib/helper/notice-alert-helper';
 
 import ErrorHandler from '@/common/composables/error/errorHandler';
-import { useProperRouteLocation } from '@/common/composables/proper-route-location';
 
 import UserManagementRemoveModal from '@/services/iam/components/UserManagementRemoveModal.vue';
 import { useUserPageStore } from '@/services/iam/store/user-page-store';
-import { PROJECT_ROUTE } from '@/services/project-v1/routes/route-constant';
 
 interface TableItem {
     project_id?: string;
@@ -39,7 +39,8 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const userPageStore = useUserPageStore();
-const { getProperRouteLocation } = useProperRouteLocation();
+
+const { getReferenceLocation } = useReferenceRouter();
 
 const state = reactive({
     loading: false,
@@ -74,6 +75,7 @@ const handleClickButton = async (value: string) => {
 const closeRemoveModal = () => {
     modalState.visible = false;
 };
+const getProjectDetailLocation = (id: string) => getReferenceLocation(id, { resource_type: 'identity.Project' });
 
 /* API */
 const fetchProjectList = async () => {
@@ -136,7 +138,7 @@ watch([() => props.activeTab, () => state.selectedUser.user_id], async () => {
         >
             <template #col-name-format="{item}">
                 <span class="project-name-wrapper">
-                    <router-link :to="getProperRouteLocation({ name: PROJECT_ROUTE.DETAIL._NAME, params: { id: item.project_id } })"
+                    <router-link :to="getProjectDetailLocation(item.project_id)"
                                  target="_blank"
                     >
                         <span>{{ item.name }}</span>

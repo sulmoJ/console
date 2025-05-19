@@ -6,7 +6,6 @@ import {
 } from '@cloudforet/mirinae';
 import type { AutocompleteHandler, SelectDropdownMenuItem } from '@cloudforet/mirinae/types/controls/dropdown/select-dropdown/type';
 
-
 import type { DropdownTaskField } from '@/api-clients/opsflow/_types/task-field-type';
 
 import { useTaskFieldValidation } from '@/services/ops-flow/task-fields-form/composables/use-task-field-validation';
@@ -14,7 +13,6 @@ import type {
     TaskFieldFormEmits,
     TaskFieldFormProps,
 } from '@/services/ops-flow/task-fields-form/types/task-field-form-type';
-
 
 const props = defineProps<TaskFieldFormProps<DropdownTaskField, string[]>>();
 

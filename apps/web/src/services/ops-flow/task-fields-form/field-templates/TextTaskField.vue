@@ -3,7 +3,6 @@ import {
     PFieldGroup, PTextInput,
 } from '@cloudforet/mirinae';
 
-
 import type { TextTaskField } from '@/api-clients/opsflow/_types/task-field-type';
 
 import { useTaskFieldValidation } from '@/services/ops-flow/task-fields-form/composables/use-task-field-validation';
@@ -28,7 +27,7 @@ const {
     >
         <p-text-input class="my-1"
                       :value="fieldValue"
-                      :placeholder="props.field.options?.example"
+                      :placeholder="props.readonly ? undefined : props.field.options?.description"
                       :invalid="isInvalid"
                       :readonly="props.readonly"
                       block

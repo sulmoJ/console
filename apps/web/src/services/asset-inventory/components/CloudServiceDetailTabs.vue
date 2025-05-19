@@ -10,24 +10,26 @@ import {
 } from '@cloudforet/mirinae';
 import type { DynamicLayoutFieldHandler } from '@cloudforet/mirinae/types/data-display/dynamic/dynamic-layout/type';
 
-
 import type { CloudServiceGetParameters } from '@/schema/inventory/cloud-service/api-verbs/get';
 import type { CloudServiceModel } from '@/schema/inventory/cloud-service/model';
 import { i18n } from '@/translations';
 
-import { useDisplayStore } from '@/store/display/display-store';
+import { useServiceRouter } from '@/router/composables/use-service-router';
+
 import { useAllReferenceStore } from '@/store/reference/all-reference-store';
 
+import { useGlobalConfigUiAffectsSchema } from '@/lib/config/global-config/composables/use-global-config-ui-affects-schema';
 import { MENU_ID } from '@/lib/menu/config';
 import type { Reference } from '@/lib/reference/type';
 
-
+import { useContentsAccessibility } from '@/common/composables/contents-accessibility';
 import ErrorHandler from '@/common/composables/error/errorHandler';
 import Monitoring from '@/common/modules/monitoring/Monitoring.vue';
 import type { MonitoringProps, MonitoringResourceType } from '@/common/modules/monitoring/type';
 
 import CloudServiceAdmin
     from '@/services/asset-inventory/components/CloudServiceAdmin.vue';
+import CloudServiceAlertsTab from '@/services/asset-inventory/components/CloudServiceAlertsTab.vue';
 import CloudServiceDetail
     from '@/services/asset-inventory/components/CloudServiceDetail.vue';
 import CloudServiceMultipleSelectedData
@@ -43,7 +45,6 @@ import BoardTaskTable from '@/services/ops-flow/components/BoardTaskTable.vue';
 import {
     useTaskManagementTemplateStore,
 } from '@/services/ops-flow/task-management-templates/stores/use-task-management-template-store';
-import { PROJECT_ROUTE } from '@/services/project-v1/routes/route-constant';
 
 interface Props {
     tableState: any;
@@ -60,12 +61,19 @@ const props = defineProps<Props>();
 
 const allReferenceStore = useAllReferenceStore();
 const allReferenceGetters = allReferenceStore.getters;
-const displayStore = useDisplayStore();
 const taskManagementTemplateStore = useTaskManagementTemplateStore();
+const alertManagerUiAffectsSchema = useGlobalConfigUiAffectsSchema('ALERT_MANAGER');
+
 
 const router = useRouter();
+const serviceRouter = useServiceRouter(router);
+
+const { visibleContents } = useContentsAccessibility(MENU_ID.OPS_FLOW);
 
 /* Tabs */
+const state = reactive({
+    visibleAlertTab: computed(() => alertManagerUiAffectsSchema.value?.visibleAssetAlertTab),
+});
 const singleItemTabState = reactive({
     tabs: computed(() => {
         const defaultTabs = [
@@ -80,7 +88,10 @@ const singleItemTabState = reactive({
                 { name: 'log', label: i18n.t('INVENTORY.CLOUD_SERVICE.PAGE.TAB_LOG') },
             );
         }
-        if (displayStore.getters.availableAdvancedServices[MENU_ID.OPS_FLOW]) {
+        if (state.visibleAlertTab) {
+            defaultTabs.push({ name: 'alerts', label: i18n.t('INVENTORY.CLOUD_SERVICE.PAGE.TAB_ALERTS') });
+        }
+        if (visibleContents.value) {
             defaultTabs.push({ name: 'task', label: taskManagementTemplateStore.templates.Task });
         }
         return defaultTabs;
@@ -94,7 +105,7 @@ const multiItemTabState = reactive({
             { name: 'data', label: i18n.t('INVENTORY.CLOUD_SERVICE.PAGE.TAB_SELECTED_DATA') },
             { name: 'monitoring', label: i18n.t('INVENTORY.CLOUD_SERVICE.PAGE.TAB_MONITORING') },
         ];
-        if (displayStore.getters.availableAdvancedServices[MENU_ID.OPS_FLOW]) {
+        if (visibleContents.value) {
             defaultTabs.push({ name: 'task', label: taskManagementTemplateStore.templates.Task });
         }
         return defaultTabs;
@@ -122,8 +133,9 @@ const handleClickLinkButton = async (type: string, workspaceId: string, id: stri
             ErrorHandler.handleRequestError(e, e.message);
         }
     } else {
-        window.open(router.resolve({
-            name: PROJECT_ROUTE.DETAIL._NAME,
+        window.open(serviceRouter.resolve({
+            feature: MENU_ID.PROJECT,
+            routeKey: 'detail',
             params: { id, workspaceId },
         }).href, '_blank');
     }
@@ -179,6 +191,11 @@ const monitoringState: MonitoringProps = reactive({
         </template>
         <template #monitoring>
             <monitoring :resources="monitoringState.resources" />
+        </template>
+        <template #alerts>
+            <cloud-service-alerts-tab
+                :cloud-service-id="tableState.selectedCloudServiceIds[0]"
+            />
         </template>
         <template #task>
             <p-heading class="py-6 px-4"

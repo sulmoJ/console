@@ -7,14 +7,13 @@ import type { TranslateResult } from 'vue-i18n';
 import {
     PLazyImg, PI, PEmpty, PCheckbox, PBoardItem, PSelectDropdown,
 } from '@cloudforet/mirinae';
-import type { MenuItem } from '@cloudforet/mirinae/src/controls/context-menu/type';
-import { CONTEXT_MENU_TYPE } from '@cloudforet/mirinae/src/controls/context-menu/type';
+import type { MenuItem } from '@cloudforet/mirinae/types/controls/context-menu/type';
 
-import type { UserConfigModel } from '@/schema/config/user-config/model';
-import { ROLE_TYPE } from '@/schema/identity/role/constant';
+import type { UserConfigModel } from '@/api-clients/config/user-config/schema/model';
+import { ROLE_TYPE } from '@/api-clients/identity/role/constant';
 import { i18n } from '@/translations';
 
-import { useUserStore } from '@/store/user/user-store';
+import { useAuthorizationStore } from '@/store/authorization/authorization-store';
 
 import { assetUrlConverter } from '@/lib/helper/asset-helper';
 
@@ -47,10 +46,10 @@ const bookmarkState = bookmarkStore.state;
 const workspaceHomePageStore = useWorkspaceHomePageStore();
 const workspaceHomePageState = workspaceHomePageStore.state;
 const workspaceHomePageGetters = workspaceHomePageStore.getters;
-const userStore = useUserStore();
+const authorizationStore = useAuthorizationStore();
 
 const storeState = reactive({
-    isWorkspaceMember: computed(() => userStore.state.currentRoleInfo?.roleType === ROLE_TYPE.WORKSPACE_MEMBER),
+    isWorkspaceMember: computed(() => authorizationStore.state.currentRoleInfo?.roleType === ROLE_TYPE.WORKSPACE_MEMBER),
 
     selectedBookmarks: computed<BookmarkItem[]>(() => bookmarkState.selectedBookmarks),
     bookmarkType: computed<BookmarkType|undefined>(() => bookmarkState.bookmarkType),
@@ -81,7 +80,7 @@ const state = reactive({
                     name: 'add',
                     label: i18n.t('HOME.BOOKMARK_ADD_LINK'),
                 },
-                { type: CONTEXT_MENU_TYPE.divider },
+                { type: 'divider' },
                 ...defaultSets,
             ];
         }

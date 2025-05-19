@@ -3,52 +3,46 @@ import { computed, reactive } from 'vue';
 import type { Location } from 'vue-router';
 
 import { PLink, PScopedNotification } from '@cloudforet/mirinae';
-import { ACTION_ICON } from '@cloudforet/mirinae/src/navigation/link/type';
 
 import type { BudgetModel } from '@/api-clients/cost-analysis/budget/schema/model';
 import { i18n } from '@/translations';
 
-import { makeAdminRouteName } from '@/router/helpers/route-helper';
-
-import { useDomainStore } from '@/store/domain/domain-store';
 import { useUserStore } from '@/store/user/user-store';
 
-import config from '@/lib/config';
+import { useGlobalConfigUiAffectsSchema } from '@/lib/config/global-config/composables/use-global-config-ui-affects-schema';
 
 import ErrorHandler from '@/common/composables/error/errorHandler';
 
+import BudgetDetailBaseInformation from '@/services/cost-explorer/components/BudgetDetailBaseInformation.vue';
 import BudgetDetailHeading from '@/services/cost-explorer/components/BudgetDetailHeading.vue';
-import BudgetDetailInfo from '@/services/cost-explorer/components/BudgetDetailInfo.vue';
-import BudgetDetailNotifications
-    from '@/services/cost-explorer/components/BudgetDetailNotifications.vue';
-import BudgetDetailSummary
-    from '@/services/cost-explorer/components/BudgetDetailSummary.vue';
-import { COST_EXPLORER_ROUTE } from '@/services/cost-explorer/routes/route-constant';
+import BudgetUsageTrend from '@/services/cost-explorer/components/BudgetUsageTrend.vue';
+import { ADMIN_COST_EXPLORER_ROUTE } from '@/services/cost-explorer/routes/admin/route-constant';
 import { useBudgetDetailPageStore } from '@/services/cost-explorer/stores/budget-detail-page-store';
 
 
 interface Props {
-    budgetId: string;
+  budgetId: string;
 }
 const props = withDefaults(defineProps<Props>(), {
     budgetId: '',
 });
 
-const domainStore = useDomainStore();
 const userStore = useUserStore();
+const alertManagerUiAffectsSchema = useGlobalConfigUiAffectsSchema('ALERT_MANAGER');
+
 const budgetPageStore = useBudgetDetailPageStore();
 const budgetPageState = budgetPageStore.$state;
 const state = reactive({
     loading: true,
     budgetData: computed<BudgetModel|null>(() => budgetPageState.budgetData),
+    visibleBudgetNotification: computed<boolean>(() => alertManagerUiAffectsSchema.value?.visibleBudgetNotification ?? false),
     isWorkspaceTarget: computed<boolean>(() => (state.budgetData?.resource_group === 'WORKSPACE')),
     adminModeLink: computed<Location>(() => ({
-        name: makeAdminRouteName(COST_EXPLORER_ROUTE.BUDGET.DETAIL._NAME),
+        name: ADMIN_COST_EXPLORER_ROUTE.BUDGET.DETAIL._NAME,
         params: {
             budgetId: state.budgetData?.budget_id,
         },
     })),
-    isAlertManagerVersionV2: computed<boolean>(() => (config.get('ADVANCED_SERVICE')?.alert_manager_v2 ?? []).includes(domainStore.state.domainId)),
 });
 
 (async () => {
@@ -64,46 +58,50 @@ const state = reactive({
         state.loading = false;
     }
 })();
-
 </script>
 
 <template>
     <div>
         <portal to="page-top-notification">
-            <p-scoped-notification v-if="state.isWorkspaceTarget"
-                                   type="information"
-                                   :title="i18n.t('BILLING.COST_MANAGEMENT.BUDGET.DETAIL.PAGE_NOTIFICATION')"
-                                   icon="ic_info-circle"
+            <p-scoped-notification
+                v-if="state.isWorkspaceTarget"
+                type="information"
+                :title="
+                    i18n.t('BILLING.COST_MANAGEMENT.BUDGET.DETAIL.PAGE_NOTIFICATION')
+                "
+                icon="ic_info-circle"
             >
                 <template v-if="userStore.getters.isDomainAdmin"
                           #right
                 >
-                    <p-link class="notification-link"
-                            :action-icon="ACTION_ICON.INTERNAL_LINK"
-                            highlight
-                            new-tab
-                            :to="state.adminModeLink"
+                    <p-link
+                        class="notification-link"
+                        action-icon="internal-link"
+                        highlight
+                        new-tab
+                        :to="state.adminModeLink"
                     >
-                        {{ $t('BILLING.COST_MANAGEMENT.BUDGET.DETAIL.VIEW_IN_ADMIN_MODE') }}
+                        {{ $t("BILLING.COST_MANAGEMENT.BUDGET.DETAIL.VIEW_IN_ADMIN_MODE") }}
                     </p-link>
                 </template>
             </p-scoped-notification>
         </portal>
         <budget-detail-heading :loading="state.loading" />
         <section class="content">
-            <budget-detail-info class="summary" />
+            <budget-detail-base-information />
+            <budget-usage-trend />
+            <!-- <budget-detail-info class="summary" />
+            <budget-detail-notifications v-if="state.visibleBudgetNotification && !state.isWorkspaceTarget"
             <budget-detail-summary
                 :budget-loading="state.loading"
                 class="summary"
             />
-            <budget-detail-notifications v-if="!state.isAlertManagerVersionV2 && !state.isWorkspaceTarget"
                                          class="alert"
                                          :currency="state.budgetData?.currency"
-            />
+            /> -->
         </section>
     </div>
 </template>
-
 
 <style lang="postcss" scoped>
 .content {

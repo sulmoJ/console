@@ -3,7 +3,6 @@ import { computed, reactive } from 'vue';
 import type { TranslateResult } from 'vue-i18n';
 
 import { PLink, PI, PTooltip } from '@cloudforet/mirinae';
-import { ACTION_ICON } from '@cloudforet/mirinae/src/navigation/link/type';
 import { isNotEmpty } from '@cloudforet/utils';
 
 import {
@@ -14,10 +13,9 @@ import {
 import type { CollectorRuleModel, AdditionalRuleAction } from '@/schema/inventory/collector-rule/model';
 import { i18n as _i18n } from '@/translations';
 
+import { useReferenceRouter } from '@/router/composables/use-reference-router';
+
 import { useAllReferenceStore } from '@/store/reference/all-reference-store';
-
-import { referenceRouter } from '@/lib/reference/referenceRouter';
-
 
 interface Props {
     data?: CollectorRuleModel;
@@ -26,6 +24,8 @@ const props = withDefaults(defineProps<Props>(), {
     data: undefined,
 });
 const allReferenceStore = useAllReferenceStore();
+
+const { getReferenceLocation } = useReferenceRouter();
 
 interface Field {
     name: string;
@@ -130,9 +130,9 @@ const state = reactive({
                         >
                             <td>{{ field.label }}</td>
                             <td v-if="field.name === 'change_project'">
-                                <p-link :action-icon="ACTION_ICON.INTERNAL_LINK"
+                                <p-link action-icon="internal-link"
                                         new-tab
-                                        :to="referenceRouter(
+                                        :to="getReferenceLocation(
                                             state.changeProjectId,
                                             { resource_type: 'identity.Project',
                                               workspace_id: state.projects[state.changeProjectId]?.data?.workspaceId },)"

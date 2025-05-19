@@ -1,4 +1,6 @@
-import { reactive } from 'vue';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-nocheck
+import { computed, reactive } from 'vue';
 
 import { cloneDeep } from 'lodash';
 
@@ -11,15 +13,13 @@ import type { ProjectChannelUpdateParameters } from '@/schema/notification/proje
 import type { UserChannelUpdateParameters as UserChannelUpdateParametersV1 } from '@/schema/notification/user-channel/api-verbs/update';
 import { i18n } from '@/translations';
 
-import { useDomainStore } from '@/store/domain/domain-store';
-
-import config from '@/lib/config';
+import { useGlobalConfigUiAffectsSchema } from '@/lib/config/global-config/composables/use-global-config-ui-affects-schema';
 import { showSuccessMessage } from '@/lib/helper/notice-alert-helper';
 
 import ErrorHandler from '@/common/composables/error/errorHandler';
 
-
 interface NotificationItemState<Data> {
+    visibleUserNotification: boolean;
 	isEditMode: boolean;
 	dataForEdit?: Data;
 	userChannelId?: string;
@@ -29,11 +29,11 @@ type Emit<Data> = {
     (event: 'edit', value?: Data): void;
 };
 
-const domainStore = useDomainStore();
-const isAlertManagerVersionV2 = (config.get('ADVANCED_SERVICE')?.alert_manager_v2 ?? []).includes(domainStore.state.domainId);
-
 export const useNotificationItem = <Data>(_state: NotificationItemState<Data>, emit: Emit<Data>) => {
+    const alertManagerUiAffectsSchema = useGlobalConfigUiAffectsSchema('ALERT_MANAGER');
+
     const state = reactive({
+        visibleUserNotification: computed<boolean>(() => alertManagerUiAffectsSchema.value?.visibleUserNotification ?? false),
         isEditMode: _state.isEditMode,
         dataForEdit: _state.dataForEdit,
         userChannelId: _state.userChannelId,
@@ -78,7 +78,7 @@ export const useNotificationItem = <Data>(_state: NotificationItemState<Data>, e
             } else if (paramKey === 'schedule') {
                 param.schedule = paramValue;
             }
-            const fetcher = isAlertManagerVersionV2
+            const fetcher = state.visibleUserNotification
                 ? SpaceConnector.clientV2.alertManager.userChannel.update<UserChannelUpdateParameters, UserChannelModel>(param)
                 : SpaceConnector.clientV2.notification.userChannel.update<UserChannelUpdateParametersV1>(paramV1);
             await fetcher;

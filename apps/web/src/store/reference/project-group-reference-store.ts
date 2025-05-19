@@ -6,18 +6,17 @@ import { defineStore } from 'pinia';
 import { SpaceConnector } from '@cloudforet/core-lib/space-connector';
 
 import type { ListResponse } from '@/api-clients/_common/schema/api-verbs/list';
-import type { ProjectGroupListParameters } from '@/schema/identity/project-group/api-verbs/list';
-import type { ProjectGroupModel } from '@/schema/identity/project-group/model';
+import type { ProjectGroupListParameters } from '@/api-clients/identity/project-group/schema/api-verbs/list';
+import type { ProjectGroupModel } from '@/api-clients/identity/project-group/schema/model';
 
+import { useAuthorizationStore } from '@/store/authorization/authorization-store';
 import type {
     ReferenceLoadOptions, ReferenceItem, ReferenceMap, ReferenceTypeInfo,
 } from '@/store/reference/type';
-import { useUserStore } from '@/store/user/user-store';
 
 import { MANAGED_VARIABLE_MODELS } from '@/lib/variable-models/managed-model-config/base-managed-model-config';
 
 import ErrorHandler from '@/common/composables/error/errorHandler';
-
 
 interface ProjectGroupResourceItemData {
     parentGroupInfo?: {
@@ -34,7 +33,8 @@ let lastLoadedTime = 0;
 
 
 export const useProjectGroupReferenceStore = defineStore('reference-project-group', () => {
-    const userStore = useUserStore();
+    const authorizationStore = useAuthorizationStore();
+
     const state = reactive({
         items: null as ProjectGroupReferenceMap | null,
     });
@@ -104,7 +104,7 @@ export const useProjectGroupReferenceStore = defineStore('reference-project-grou
 
     const getters = reactive({
         projectGroupItems: asyncComputed<ProjectGroupReferenceMap>(async () => {
-            if (!userStore.state.currentGrantInfo?.scope || userStore.state.currentGrantInfo?.scope === 'USER') return {};
+            if (!authorizationStore.state.currentGrantInfo?.scope || authorizationStore.state.currentGrantInfo?.scope === 'USER') return {};
             if (state.items === null) await load();
             return state.items ?? {};
         }, {}, { lazy: true }),

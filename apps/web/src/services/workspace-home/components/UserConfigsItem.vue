@@ -4,20 +4,20 @@ import { useRouter } from 'vue-router/composables';
 
 import { PI, PTextHighlighting } from '@cloudforet/mirinae';
 
+import { useReferenceRouter } from '@/router/composables/use-reference-router';
+
 import type { ReferenceData } from '@/lib/helper/config-data-helper';
 import { getParsedKeysWithManagedCostQueryFavoriteKey } from '@/lib/helper/config-data-helper';
 import type { MenuInfo } from '@/lib/menu/config';
 import { MENU_INFO_MAP } from '@/lib/menu/menu-info';
-import { referenceRouter } from '@/lib/reference/referenceRouter';
 
-import { useProperRouteLocation } from '@/common/composables/proper-route-location';
 import FavoriteButton from '@/common/modules/favorites/favorite-button/FavoriteButton.vue';
 import { FAVORITE_TYPE } from '@/common/modules/favorites/favorite-button/type';
 
 import { gray, indigo, peacock } from '@/styles/colors';
 
-import { ALERT_MANAGER_ROUTE } from '@/services/alert-manager/routes/route-constant';
-import { ASSET_INVENTORY_ROUTE_V1 } from '@/services/asset-inventory-v1/routes/route-constant';
+import { ALERT_MANAGER_ROUTE } from '@/services/alert-manager/v2/routes/route-constant';
+import { ASSET_INVENTORY_ROUTE } from '@/services/asset-inventory/routes/route-constant';
 import { COST_EXPLORER_ROUTE } from '@/services/cost-explorer/routes/route-constant';
 import { DASHBOARDS_ROUTE } from '@/services/dashboards/routes/route-constant';
 import { useWorkspaceHomePageStore } from '@/services/workspace-home/store/workspace-home-page-store';
@@ -29,12 +29,12 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
     item: undefined,
 });
-
 const workspaceHomePageStore = useWorkspaceHomePageStore();
 
-const { getProperRouteLocation } = useProperRouteLocation();
 
 const router = useRouter();
+
+const { getReferenceLocation } = useReferenceRouter();
 
 const state = reactive({
     iconColor: computed<string|undefined>(() => {
@@ -58,57 +58,57 @@ const handleClickItem = () => {
     if (!props.item) return;
     const itemName = props.item.name as string;
     if (props.item.itemType === FAVORITE_TYPE.DASHBOARD) {
-        router.push(getProperRouteLocation({
+        router.push({
             name: DASHBOARDS_ROUTE.DETAIL._NAME,
             params: {
                 dashboardId: itemName,
             },
-        }));
+        }).catch(() => {});
         return;
     }
     if (props.item.itemType === FAVORITE_TYPE.PROJECT) {
-        router.push(referenceRouter(itemName, { resource_type: 'identity.Project' })).catch(() => {});
+        router.push(getReferenceLocation(itemName, { resource_type: 'identity.Project' })).catch(() => {});
         return;
     }
     if (props.item.itemType === FAVORITE_TYPE.PROJECT_GROUP) {
-        router.push(referenceRouter(itemName, { resource_type: 'identity.ProjectGroup' })).catch(() => {});
+        router.push(getReferenceLocation(itemName, { resource_type: 'identity.ProjectGroup' })).catch(() => {});
         return;
     }
     if (props.item.itemType === FAVORITE_TYPE.COST_ANALYSIS) {
         const parsedKeys = getParsedKeysWithManagedCostQueryFavoriteKey(itemName);
-        router.push(getProperRouteLocation({
+        router.push({
             name: COST_EXPLORER_ROUTE.COST_ANALYSIS.QUERY_SET._NAME,
             params: {
                 dataSourceId: props.item.dataSourceId,
                 costQuerySetId: parsedKeys ? parsedKeys[1] : itemName,
             },
-        }));
+        }).catch(() => {});
         return;
     }
     if (props.item.itemType === FAVORITE_TYPE.SECURITY) {
         const itemInfo: string[] = itemName.split('.');
-        router.push(getProperRouteLocation({
-            name: ASSET_INVENTORY_ROUTE_V1.SECURITY.DETAIL._NAME,
+        router.push({
+            name: ASSET_INVENTORY_ROUTE.SECURITY.DETAIL._NAME,
             params: {
                 provider: itemInfo[0],
                 group: itemInfo[1],
                 name: props.item.label as string,
             },
-        }));
+        }).catch(() => {});
         return;
     }
     if (props.item.itemType === FAVORITE_TYPE.SERVICE) {
-        router.push(getProperRouteLocation({
+        router.push({
             name: ALERT_MANAGER_ROUTE.SERVICE.DETAIL._NAME,
             params: {
                 serviceId: props.item.itemId,
             },
-        }));
+        }).catch(() => {});
         return;
     }
     const menuInfo: MenuInfo = MENU_INFO_MAP[itemName];
     if (menuInfo && router.currentRoute.name !== itemName) {
-        router.push(getProperRouteLocation({ name: menuInfo.routeName }));
+        router.push({ name: menuInfo.routeName }).catch(() => {});
     }
 };
 </script>

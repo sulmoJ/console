@@ -6,25 +6,24 @@ import { defineStore } from 'pinia';
 import { SpaceConnector } from '@cloudforet/core-lib/space-connector';
 
 import type { ListResponse } from '@/api-clients/_common/schema/api-verbs/list';
-import type { RoleBindingModel } from '@/schema/identity/role-binding/model';
-import type { RoleListParameters } from '@/schema/identity/role/api-verbs/list';
-import { ROLE_STATE } from '@/schema/identity/role/constant';
-import type { RoleModel } from '@/schema/identity/role/model';
-import type { UserListParameters } from '@/schema/identity/user/api-verbs/list';
-import type { UserModel } from '@/schema/identity/user/model';
-import type { WorkspaceUserListParameters } from '@/schema/identity/workspace-user/api-verbs/list';
-import type { WorkspaceUserModel } from '@/schema/identity/workspace-user/model';
+import type { RoleBindingModel } from '@/api-clients/identity/role-binding/schema/model';
+import { ROLE_STATE } from '@/api-clients/identity/role/constant';
+import type { RoleListParameters } from '@/api-clients/identity/role/schema/api-verbs/list';
+import type { RoleModel } from '@/api-clients/identity/role/schema/model';
+import type { UserListParameters } from '@/api-clients/identity/user/schema/api-verbs/list';
+import type { UserModel } from '@/api-clients/identity/user/schema/model';
+import type { WorkspaceUserListParameters } from '@/api-clients/identity/workspace-user/schema/api-verbs/list';
+import type { WorkspaceUserModel } from '@/api-clients/identity/workspace-user/schema/model';
 
 import { useAppContextStore } from '@/store/app-context/app-context-store';
+import { useAuthorizationStore } from '@/store/authorization/authorization-store';
 import type {
     ReferenceLoadOptions, ReferenceItem, ReferenceMap, ReferenceTypeInfo,
 } from '@/store/reference/type';
-import { useUserStore } from '@/store/user/user-store';
 
 import { MANAGED_VARIABLE_MODELS } from '@/lib/variable-models/managed-model-config/base-managed-model-config';
 
 import ErrorHandler from '@/common/composables/error/errorHandler';
-
 
 interface UserResourceItemData {
     roleInfo?: Partial<RoleModel>;
@@ -60,7 +59,7 @@ const _listRole = async (roleIdList: string[]): Promise<RoleModel[]> => {
 };
 export const useUserReferenceStore = defineStore('reference-user', () => {
     const appContextStore = useAppContextStore();
-    const userStore = useUserStore();
+    const authorizationStore = useAuthorizationStore();
     const _state = reactive({
         isAdminMode: computed(() => appContextStore.getters.isAdminMode),
         roleList: [] as RoleModel[],
@@ -72,7 +71,7 @@ export const useUserReferenceStore = defineStore('reference-user', () => {
     const getters = reactive({
         loading: computed<boolean>(() => state.items === null),
         userItems: asyncComputed<UserReferenceMap>(async () => {
-            if (!userStore.state.currentGrantInfo?.scope || userStore.state.currentGrantInfo?.scope === 'USER') return {};
+            if (!authorizationStore.state.currentGrantInfo?.scope || authorizationStore.state.currentGrantInfo?.scope === 'USER') return {};
             if (state.items === null) await load();
             return state.items ?? {};
         }, {}, { lazy: true }),
